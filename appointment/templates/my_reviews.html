@@ -1,0 +1,87 @@
+{% extends 'base_enhanced.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-textc-main mb-2">
+            <i class="fas fa-star text-yellow-400 mr-3"></i>
+            My Reviews
+        </h1>
+        <p class="text-textc-muted">Manage your doctor reviews and ratings</p>
+    </div>
+
+    <!-- Reviews List -->
+    <div class="space-y-4">
+        {% for review in reviews %}
+        <div class="card-style p-6">
+            <div class="flex flex-col md:flex-row justify-between gap-4">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center">
+                            <i class="fas fa-user-md text-brand-primary"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-textc-main font-semibold">{{ review.doctor.name }}</h3>
+                            <p class="text-textc-muted text-sm">{{ review.doctor.specialization }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 mb-3">
+                        {% with ''|center:5 as range %}
+                        {% for _ in range %}
+                        {% if forloop.counter <= review.rating %} <i class="fas fa-star text-yellow-400"></i>
+                            {% else %}
+                            <i class="far fa-star text-gray-400"></i>
+                            {% endif %}
+                            {% endfor %}
+                            {% endwith %}
+                            <span class="text-textc-main font-medium">{{ review.rating }}/5</span>
+
+                            {% if not review.is_approved %}
+                            <span class="px-2 py-1 rounded-full text-xs bg-brand-warning/10 text-brand-warning">
+                                <i class="fas fa-clock mr-1"></i> Pending Approval
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 rounded-full text-xs bg-brand-success/10 text-brand-success">
+                                <i class="fas fa-check mr-1"></i> Approved
+                            </span>
+                            {% endif %}
+                    </div>
+
+                    {% if review.title %}
+                    <h4 class="text-textc-main font-medium mb-1">{{ review.title }}</h4>
+                    {% endif %}
+
+                    <p class="text-textc-muted">{{ review.comment }}</p>
+
+                    <p class="text-xs text-textc-muted mt-3">
+                        <i class="far fa-calendar mr-1"></i>
+                        Posted {{ review.created_at|timesince }} ago
+                    </p>
+                </div>
+
+                <div class="flex flex-row md:flex-col gap-2">
+                    <a href="{% url 'edit_review' review.id %}"
+                        class="px-4 py-2 bg-brand-accent text-brand-primary rounded-lg text-center hover:bg-brand-accent/80 transition">
+                        <i class="fas fa-edit mr-1"></i> Edit
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card-style p-10 text-center">
+            <i class="far fa-star text-5xl text-textc-muted mb-4"></i>
+            <h3 class="text-xl font-medium text-textc-main mb-2">No Reviews Yet</h3>
+            <p class="text-textc-muted mb-6">You haven't written any reviews. Complete an appointment to leave a review.
+            </p>
+            <a href="/doctors/" class="px-6 py-3 btn-primary font-medium rounded-lg">
+                <i class="fas fa-search mr-2"></i> Find a Doctor
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- ================= HERO ================= -->
+    <section class="grid md:grid-cols-2 gap-12 items-center mb-20">
+
+        <!-- Text -->
+        <div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 text-textc-main leading-tight">
+                Book Doctor Appointments
+                <span class="block text-brand-primary">Effortlessly</span>
+            </h1>
+
+            <p class="text-textc-muted mb-8 text-lg max-w-xl">
+                Find trusted doctors, check availability, and book appointments in seconds.
+                Manage your health with our modern appointment platform.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4">
+                <a href="/doctors/" class="inline-flex items-center px-6 py-3 rounded-xl
+                      btn-primary font-semibold">
+                    <i class="fas fa-search mr-2"></i>
+                    Find Doctors
+                </a>
+
+                {% if not user.is_authenticated %}
+                <a href="{% url 'signup_patient' %}" class="inline-flex items-center px-6 py-3 rounded-xl
+                          btn-accent font-medium">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Sign Up as Patient
+                </a>
+                {% else %}
+                <a href="{% if user.profile.role == 'patient' %}{% url 'patient_dashboard' %}{% else %}{% url 'doctor_dashboard' %}{% endif %}"
+                    class="inline-flex items-center px-6 py-3 rounded-xl
+                          btn-secondary font-semibold">
+                    <i class="fas fa-tachometer-alt mr-2"></i>
+                    Go to Dashboard
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Visual -->
+        <div class="hidden md:flex justify-center">
+            <div class="relative">
+                <div class="w-80 h-80 rounded-full
+                        bg-brand-accent/50
+                        flex items-center justify-center">
+                    <i class="fas fa-user-md text-7xl text-brand-primary"></i>
+                </div>
+
+                <div
+                    class="absolute -top-4 -right-4 w-16 h-16 bg-brand-success/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-calendar-check text-xl text-brand-success"></i>
+                </div>
+
+                <div
+                    class="absolute -bottom-4 -left-4 w-12 h-12 bg-brand-warning/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-heart text-lg text-brand-warning"></i>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ================= STATISTICS ================= -->
+    <section class="mb-20">
+
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold text-textc-main mb-2">Platform Statistics</h2>
+            <p class="text-textc-muted">Trusted by patients and doctors nationwide</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <div class="card-style p-6 text-center transition-all hover:-translate-y-1">
+                <div class="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-user-md text-2xl text-brand-primary"></i>
+                </div>
+                <h3 class="text-3xl font-bold text-textc-main">{{ total_doctors }}</h3>
+                <p class="text-textc-muted">Active Doctors</p>
+            </div>
+
+            <div class="card-style p-6 text-center transition-all hover:-translate-y-1">
+                <div class="w-16 h-16 bg-brand-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-calendar-check text-2xl text-brand-success"></i>
+                </div>
+                <h3 class="text-3xl font-bold text-textc-main">{{ total_appointments }}</h3>
+                <p class="text-textc-muted">Total Appointments</p>
+            </div>
+
+            <div class="card-style p-6 text-center transition-all hover:-translate-y-1">
+                <div class="w-16 h-16 bg-brand-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-clock text-2xl text-brand-warning"></i>
+                </div>
+                <h3 class="text-3xl font-bold text-textc-main">{{ upcoming_appointments }}</h3>
+                <p class="text-textc-muted">Upcoming Appointments</p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ================= FEATURED DOCTORS ================= -->
+    {# Display featured doctors if available #}
+    {% if featured_doctors %}
+    <section class="mb-20">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold text-textc-main mb-2">Featured Doctors</h2>
+            <p class="text-textc-muted">Experienced healthcare professionals you can trust</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for doctor in featured_doctors %}
+            <div class="card-style p-6 transition-all hover:-translate-y-1">
+                <div class="text-center">
+                    <div
+                        class="w-20 h-20 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-user-md text-3xl text-brand-primary"></i>
+                    </div>
+
+                    <h3 class="text-xl font-semibold text-textc-main mb-1">{{ doctor.name }}</h3>
+                    <p class="text-brand-primary font-medium mb-2">{{ doctor.specialization }}</p>
+
+                    {# Display experience if available #}
+                    {% if doctor.experience_years %}
+                    <p class="text-textc-muted text-sm mb-1">
+                        {{ doctor.experience_years }} years experience
+                    </p>
+                    {% endif %}
+
+                    {# Display consultation fee if available and greater than 0 #}
+                    {% if doctor.consultation_fee and doctor.consultation_fee > 0 %}
+                    <p class="text-brand-success font-semibold mb-4">
+                        ₹{{ doctor.consultation_fee }}
+                    </p>
+                    {% endif %}
+
+                    <a href="{% url 'book' doctor.id %}" class="inline-flex items-center px-4 py-2 rounded-xl
+                              btn-primary font-semibold text-sm">
+                        <i class="fas fa-calendar-plus mr-2"></i>
+                        Book Appointment
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            {# Show message when no doctors in loop #}
+            <p class="text-center text-textc-muted col-span-full py-8">
+                No doctors available at this time.
+            </p>
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-8">
+            <a href="{% url 'doctors' %}" class="inline-flex items-center px-6 py-3 rounded-xl
+                  btn-accent font-medium">
+                <i class="fas fa-list mr-2"></i>
+                View All Doctors
+            </a>
+        </div>
+    </section>
+    {% else %}
+    {# Show fallback when featured_doctors is not provided #}
+    <section class="mb-20 text-center">
+        <p class="text-textc-muted py-8">Featured doctors are not available at the moment.</p>
+    </section>
+    {% endif %}
+
+    <!-- ================= FEATURES ================= -->
+    <section class="mb-20">
+
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold text-textc-main mb-2">Why Choose Our Platform?</h2>
+            <p class="text-textc-muted">Built for modern healthcare needs</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <div class="card-style p-6 text-center transition-all hover:-translate-y-1">
+                <i class="fas fa-mobile-alt text-2xl text-brand-primary mb-3"></i>
+                <h3 class="font-semibold mb-2 text-textc-main">Mobile Friendly</h3>
+                <p class="text-sm text-textc-muted">Access appointments from any device</p>
+            </div>
+
+            <div class="card-style p-6 text-center transition-all hover:-translate-y-1">
+                <i class="fas fa-bell text-2xl text-brand-success mb-3"></i>
+                <h3 class="font-semibold mb-2 text-textc-main">Smart Notifications</h3>
+                <p class="text-sm text-textc-muted">Instant updates and reminders</p>
+            </div>
+
+            <div class="card-style p-6 text-center transition-all hover:-translate-y-1">
+                <i class="fas fa-shield-alt text-2xl text-brand-warning mb-3"></i>
+                <h3 class="font-semibold mb-2 text-textc-main">Secure & Private</h3>
+                <p class="text-sm text-textc-muted">Enterprise-grade data protection</p>
+            </div>
+
+            <div class="card-style p-6 text-center transition-all hover:-translate-y-1">
+                <i class="fas fa-clock text-2xl text-brand-secondary mb-3"></i>
+                <h3 class="font-semibold mb-2 text-textc-main">24/7 Availability</h3>
+                <p class="text-sm text-textc-muted">Book anytime that suits you</p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ================= CTA ================= -->
+    <section class="text-center">
+        <div class="card-style p-10">
+
+            <h2 class="text-3xl font-bold text-textc-main mb-4">
+                Ready to Get Started?
+            </h2>
+
+            <p class="text-textc-muted max-w-2xl mx-auto mb-8">
+                Join thousands of patients who trust our platform for their healthcare needs.
+            </p>
+
+            {% if not user.is_authenticated %}
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="{% url 'signup_patient' %}" class="px-8 py-3 rounded-xl btn-primary font-semibold">
+                    Sign Up as Patient
+                </a>
+                <a href="{% url 'signup_doctor' %}" class="px-8 py-3 rounded-xl btn-secondary font-semibold">
+                    Join as Doctor
+                </a>
+            </div>
+            {% else %}
+            <a href="{% if user.profile.role == 'patient' %}{% url 'patient_dashboard' %}{% else %}{% url 'doctor_dashboard' %}{% endif %}"
+                class="px-8 py-3 rounded-xl btn-primary font-semibold">
+                Go to Dashboard
+            </a>
+            {% endif %}
+
+        </div>
+    </section>
+
+</div>
+{% endblock %}

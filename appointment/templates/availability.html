@@ -1,0 +1,218 @@
+{% extends 'base_enhanced.html' %}
+
+{% load custom_filters %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-textc-main mb-2">
+            <i class="fas fa-clock text-brand-primary mr-3"></i>
+            Manage Availability
+        </h1>
+        <p class="text-textc-muted">Set your working hours and time blocks for unavailable periods</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- Schedule Editor -->
+        <div class="lg:col-span-2">
+            <div class="card-style p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold text-textc-main">Weekly Schedule</h2>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_schedule">
+                        <button type="submit" class="px-4 py-2 btn-primary font-medium rounded-lg">
+                            <i class="fas fa-save mr-2"></i> Save Changes
+                        </button>
+                    </form>
+                </div>
+
+                <form method="post" id="scheduleForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_schedule">
+
+                    <div class="space-y-4">
+                        {% for day in days %}
+                        <div class="flex items-center gap-4 p-4 rounded-xl bg-brand-surface border border-brand-accent">
+                            <div class="w-32">
+                                <span class="text-textc-main font-medium capitalize">{{ day }}</span>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" name="available_{{ day }}" id="available_{{ day }}" {% if
+                                    schedules|get_item:day|get_attr:'is_available' %}checked{% endif %}
+                                    class="w-5 h-5 rounded border-brand-accent text-brand-primary focus:ring-brand-primary">
+                                <label for="available_{{ day }}" class="text-sm text-textc-muted">Available</label>
+                            </div>
+
+                            <div class="flex items-center gap-2 ml-4">
+                                <label class="text-sm text-textc-muted">From:</label>
+                                <input type="time" name="start_{{ day }}"
+                                    value="{{ schedules|get_item:day|get_attr:'start_time'|time:'H:i' }}"
+                                    class="bg-white border border-brand-accent rounded-lg px-3 py-2 text-textc-main focus:outline-none focus:border-brand-primary">
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm text-textc-muted">To:</label>
+                                <input type="time" name="end_{{ day }}"
+                                    value="{{ schedules|get_item:day|get_attr:'end_time'|time:'H:i' }}"
+                                    class="bg-white border border-brand-accent rounded-lg px-3 py-2 text-textc-main focus:outline-none focus:border-brand-primary">
+                            </div>
+
+                            <div class="flex items-center gap-2 ml-4">
+                                <label class="text-sm text-textc-muted">Slots:</label>
+                                <input type="number" name="max_{{ day }}"
+                                    value="{{ schedules|get_item:day|get_attr:'max_appointments' }}" min="1" max="20"
+                                    class="w-16 bg-white border border-brand-accent rounded-lg px-3 py-2 text-textc-main focus:outline-none focus:border-brand-primary">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+
+            <!-- Add Time Block -->
+            <div class="card-style p-6">
+                <h2 class="text-lg font-semibold text-textc-main mb-4">
+                    <i class="fas fa-ban text-brand-danger mr-2"></i>
+                    Add Time Block
+                </h2>
+                <p class="text-sm text-textc-muted mb-4">Block specific dates/times when you're unavailable (vacations,
+                    meetings, etc.)</p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_block">
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-textc-muted mb-1">Start Date & Time</label>
+                            <div class="flex gap-2">
+                                <input type="date" name="block_start_date" required
+                                    class="flex-1 bg-white border border-brand-accent rounded-lg px-3 py-2 text-textc-main focus:outline-none focus:border-brand-primary">
+                                <input type="time" name="block_start_time" required
+                                    class="w-24 bg-white border border-brand-accent rounded-lg px-3 py-2 text-textc-main focus:outline-none focus:border-brand-primary">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-textc-muted mb-1">End Date & Time</label>
+                            <div class="flex gap-2">
+                                <input type="date" name="block_end_date" required
+                                    class="flex-1 bg-white border border-brand-accent rounded-lg px-3 py-2 text-textc-main focus:outline-none focus:border-brand-primary">
+                                <input type="time" name="block_end_time" required
+                                    class="w-24 bg-white border border-brand-accent rounded-lg px-3 py-2 text-textc-main focus:outline-none focus:border-brand-primary">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-textc-muted mb-1">Reason (optional)</label>
+                            <input type="text" name="block_reason" placeholder="e.g., Vacation, Conference"
+                                class="w-full bg-white border border-brand-accent rounded-lg px-3 py-2 text-textc-main focus:outline-none focus:border-brand-primary">
+                        </div>
+
+                        <button type="submit"
+                            class="w-full py-2 bg-brand-danger/80 hover:bg-brand-danger text-white rounded-lg transition">
+                            <i class="fas fa-plus mr-2"></i> Add Block
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Active Time Blocks -->
+            <div class="card-style p-6">
+                <h2 class="text-lg font-semibold text-textc-main mb-4">
+                    <i class="fas fa-calendar-times text-brand-warning mr-2"></i>
+                    Active Time Blocks
+                </h2>
+
+                {% if time_blocks %}
+                <div class="space-y-3">
+                    {% for block in time_blocks %}
+                    <div class="p-3 rounded-lg bg-brand-surface border border-brand-accent">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-textc-main font-medium">
+                                    {{ block.start_datetime|date:"M d, Y" }} - {{ block.end_datetime|date:"M d, Y" }}
+                                </p>
+                                <p class="text-sm text-textc-muted">
+                                    {{ block.start_datetime|time:"H:i" }} - {{ block.end_datetime|time:"H:i" }}
+                                </p>
+                                {% if block.reason %}
+                                <p class="text-xs text-textc-muted mt-1">{{ block.reason }}</p>
+                                {% endif %}
+                            </div>
+                            <form method="post" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete_block">
+                                <input type="hidden" name="block_id" value="{{ block.id }}">
+                                <button type="submit" class="text-brand-danger hover:text-brand-danger/80 text-sm">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-textc-muted text-center py-4">No active time blocks</p>
+                {% endif %}
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card-style p-6">
+                <h2 class="text-lg font-semibold text-textc-main mb-4">
+                    <i class="fas fa-chart-pie text-brand-success mr-2"></i>
+                    Availability Summary
+                </h2>
+
+                <div class="space-y-3">
+                    {% for day in days %}
+                    {% with schedule=schedules|get_item:day %}
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-textc-muted capitalize">{{ day }}</span>
+                        <span
+                            class="px-2 py-1 rounded-full text-xs {% if schedule.is_available %}bg-brand-success/10 text-brand-success{% else %}bg-gray-400/10 text-gray-400{% endif %}">
+                            {% if schedule.is_available %}{{ schedule.start_time|time:"H:i" }}-{{
+                            schedule.end_time|time:"H:i" }}{% else %}Off{% endif %}
+                        </span>
+                    </div>
+                    {% endwith %}
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Auto-submit on checkbox change
+        document.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
+            checkbox.addEventListener('change', function () {
+                // Visual feedback
+                this.parentElement.classList.toggle('opacity-50', !this.checked);
+            });
+        });
+    });
+</script>
+
+<style>
+    input[type="time"]::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+    }
+</style>
+{% endblock %}

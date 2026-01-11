@@ -1,0 +1,206 @@
+{% extends 'base_enhanced.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-textc-main mb-2">
+            <i class="fas fa-calendar-alt text-brand-primary mr-3"></i>
+            Appointment Calendar
+        </h1>
+        <p class="text-textc-muted">View and manage your appointments in calendar format</p>
+    </div>
+
+    <!-- Legend -->
+    <div class="card-style p-4 mb-6">
+        <div class="flex flex-wrap gap-4 items-center">
+            <span class="text-textc-muted text-sm">Status:</span>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                <span class="text-sm text-textc-muted">Pending</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                <span class="text-sm text-textc-muted">Approved</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                <span class="text-sm text-textc-muted">Scheduled</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-gray-500"></span>
+                <span class="text-sm text-textc-muted">Completed</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                <span class="text-sm text-textc-muted">Cancelled</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="card-style p-6">
+        <div id="calendar" class="min-h-[600px]"></div>
+    </div>
+
+    <!-- Appointment Details Modal -->
+    <div id="appointmentModal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-50">
+        <div class="card-style p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-textc-main" id="modalTitle">Appointment Details</h3>
+                <button onclick="closeModal()" class="text-textc-muted hover:text-textc-main">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="modalContent" class="space-y-3">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- FullCalendar CSS -->
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+
+<!-- FullCalendar JS -->
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var calendarEl = document.getElementById('calendar');
+
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: '/api/calendar/events/',
+            eventClick: function (info) {
+                showAppointmentDetails(info.event);
+            },
+            eventDidMount: function (info) {
+                // Add tooltip
+                info.el.title = info.event.title;
+            },
+            height: 'auto',
+            dateClick: function (info) {
+                // Jump to day view when date is clicked
+                calendar.changeView('timeGridDay', info.dateStr);
+            }
+        });
+
+        calendar.render();
+    });
+
+    function showAppointmentDetails(event) {
+        var props = event.extendedProps;
+        var statusColors = {
+            'pending': 'bg-amber-500/20 text-amber-600',
+            'approved': 'bg-blue-500/20 text-blue-600',
+            'scheduled': 'bg-green-500/20 text-green-600',
+            'completed': 'bg-gray-500/20 text-gray-600',
+            'cancelled': 'bg-red-500/20 text-red-600',
+            'rescheduled': 'bg-purple-500/20 text-purple-600',
+            'no_show': 'bg-orange-500/20 text-orange-600',
+            'rejected': 'bg-red-600/20 text-red-700'
+        };
+
+        var statusClass = statusColors[props.status] || 'bg-gray-500/20 text-gray-600';
+
+        document.getElementById('modalTitle').textContent = 'Appointment Details';
+        document.getElementById('modalContent').innerHTML = `
+        <div class="flex justify-between items-center">
+            <span class="text-textc-muted">Patient:</span>
+            <span class="text-textc-main font-medium">${props.patient_name}</span>
+        </div>
+        <div class="flex justify-between items-center">
+            <span class="text-textc-muted">Status:</span>
+            <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${props.status}</span>
+        </div>
+        <div class="flex justify-between items-center">
+            <span class="text-textc-muted">Doctor:</span>
+            <span class="text-textc-main">${props.doctor_name}</span>
+        </div>
+        <div class="flex justify-between items-center">
+            <span class="text-textc-muted">Date/Time:</span>
+            <span class="text-textc-main">${event.start.toLocaleDateString()} ${event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+        ${props.reason ? `<div class="mt-4">
+            <span class="text-textc-muted block mb-1">Reason:</span>
+            <p class="text-textc-main text-sm bg-brand-surface rounded-lg p-3">${props.reason}</p>
+        </div>` : ''}
+        <div class="mt-6 pt-4 border-t border-brand-accent">
+            <a href="/patient/dashboard/" class="block w-full py-2 rounded-lg btn-primary text-center font-medium">
+                View in Dashboard
+            </a>
+        </div>
+    `;
+
+        document.getElementById('appointmentModal').classList.remove('hidden');
+        document.getElementById('appointmentModal').classList.add('flex');
+    }
+
+    function closeModal() {
+        document.getElementById('appointmentModal').classList.add('hidden');
+        document.getElementById('appointmentModal').classList.remove('flex');
+    }
+
+    // Close modal on outside click
+    document.getElementById('appointmentModal').addEventListener('click', function (e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+</script>
+
+<style>
+    .fc {
+        --fc-border-color: #F5DAA7;
+        --fc-button-bg-color: #842A3B;
+        --fc-button-border-color: #842A3B;
+        --fc-button-hover-bg-color: #6B2230;
+        --fc-button-hover-border-color: #6B2230;
+        --fc-button-active-bg-color: #5A1D28;
+        --fc-button-active-border-color: #5A1D28;
+        --fc-today-bg-color: rgba(245, 218, 167, 0.3);
+        --fc-event-bg-color: #842A3B;
+        --fc-event-border-color: #842A3B;
+    }
+
+    .fc .fc-button {
+        font-weight: 500;
+        border-radius: 8px;
+        padding: 8px 16px;
+    }
+
+    .fc-theme-standard td,
+    .fc-theme-standard th {
+        border-color: #F5DAA7;
+    }
+
+    .fc .fc-daygrid-day-number {
+        color: #6B4D3E;
+        font-weight: 500;
+    }
+
+    .fc .fc-daygrid-day.fc-day-today {
+        background-color: rgba(245, 218, 167, 0.3);
+    }
+
+    .fc .fc-col-header-cell-cushion {
+        color: #2C1810;
+        font-weight: 600;
+    }
+
+    .fc-event {
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}

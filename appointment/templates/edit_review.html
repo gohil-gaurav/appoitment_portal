@@ -1,0 +1,123 @@
+{% extends 'base_enhanced.html' %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-textc-main mb-2">
+            <i class="fas fa-edit text-brand-primary mr-3"></i>
+            Edit Review
+        </h1>
+        <p class="text-textc-muted">Update your review for {{ review.doctor.name }}</p>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="card-style p-6">
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Doctor Info -->
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-brand-surface mb-6">
+                <div class="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center">
+                    <i class="fas fa-user-md text-brand-primary"></i>
+                </div>
+                <div>
+                    <h3 class="text-textc-main font-semibold">{{ review.doctor.name }}</h3>
+                    <p class="text-textc-muted text-sm">{{ review.doctor.specialization }}</p>
+                </div>
+            </div>
+
+            <!-- Rating -->
+            <div class="mb-6">
+                <label class="block text-sm text-textc-muted mb-2">Your Rating</label>
+                <div class="flex gap-2" id="starRating">
+                    {% for i in "12345"|make_list %}
+                    <button type="button"
+                        class="star-btn text-3xl {% if forloop.counter <= review.rating %}text-yellow-400{% else %}text-gray-400{% endif %} hover:text-yellow-400 transition"
+                        data-rating="{{ forloop.counter }}">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="rating" id="ratingInput" value="{{ review.rating }}">
+                <p class="text-xs text-textc-muted mt-1">Click to change your rating</p>
+            </div>
+
+            <!-- Title -->
+            <div class="mb-4">
+                <label class="block text-sm text-textc-muted mb-2">Review Title (optional)</label>
+                <input type="text" name="title" value="{{ review.title|default:'' }}"
+                    placeholder="Summarize your experience"
+                    class="w-full bg-brand-surface border border-brand-accent rounded-lg px-4 py-3 text-textc-main focus:outline-none focus:border-brand-primary">
+            </div>
+
+            <!-- Comment -->
+            <div class="mb-6">
+                <label class="block text-sm text-textc-muted mb-2">Your Review</label>
+                <textarea name="comment" rows="5" placeholder="Share your experience with this doctor..."
+                    class="w-full bg-brand-surface border border-brand-accent rounded-lg px-4 py-3 text-textc-main focus:outline-none focus:border-brand-primary resize-none"
+                    required>{{ review.comment }}</textarea>
+            </div>
+
+            <!-- Info -->
+            <div class="p-3 rounded-lg bg-brand-warning/10 border border-brand-warning/30 mb-6">
+                <p class="text-xs text-brand-warning">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Your updated review will need to be approved again before it becomes visible.
+                </p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3">
+                <a href="{% url 'my_reviews' %}"
+                    class="flex-1 py-3 bg-brand-accent text-brand-primary text-center font-medium rounded-lg hover:bg-brand-accent/80 transition">
+                    Cancel
+                </a>
+                <button type="submit" class="flex-1 py-3 btn-primary font-medium rounded-lg">
+                    <i class="fas fa-save mr-2"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<script>
+    let selectedRating = {{ review.rating }};
+
+    // Star rating functionality
+    document.querySelectorAll('.star-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            selectedRating = parseInt(this.dataset.rating);
+            document.getElementById('ratingInput').value = selectedRating;
+            updateStarDisplay();
+        });
+
+        btn.addEventListener('mouseenter', function () {
+            const rating = parseInt(this.dataset.rating);
+            highlightStars(rating);
+        });
+
+        btn.addEventListener('mouseleave', function () {
+            highlightStars(selectedRating);
+        });
+    });
+
+    function updateStarDisplay() {
+        highlightStars(selectedRating);
+    }
+
+    function highlightStars(count) {
+        document.querySelectorAll('.star-btn').forEach(function (btn, index) {
+            if (index < count) {
+                btn.classList.add('text-yellow-400');
+                btn.classList.remove('text-gray-400');
+            } else {
+                btn.classList.remove('text-yellow-400');
+                btn.classList.add('text-gray-400');
+            }
+        });
+    }
+</script>
+{% endblock %}

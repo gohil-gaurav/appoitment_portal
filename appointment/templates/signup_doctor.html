@@ -1,0 +1,391 @@
+{% extends 'base_enhanced.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4">
+
+  <!-- Success Message -->
+  {% if registration_success %}
+  <div class="mb-8">
+    <div class="bg-brand-success/10 border border-brand-success/30 rounded-xl p-6 text-center">
+      <i class="fas fa-check-circle text-brand-success text-3xl mb-3"></i>
+      <h2 class="text-xl font-bold text-brand-success mb-2">Registration Successful!</h2>
+      <p class="text-brand-success/80">{{ success_message }}</p>
+      <div class="mt-4">
+        <a href="{% url 'doctor_dashboard' %}"
+          class="inline-block px-6 py-3 bg-brand-success hover:bg-brand-success/90 text-white rounded-lg font-semibold transition">
+          Go to Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Header -->
+  <div class="mb-10 text-center">
+    <div class="inline-flex items-center justify-center w-16 h-16 bg-brand-primary/10 rounded-full mb-4">
+      <i class="fas fa-user-md text-brand-primary text-2xl"></i>
+    </div>
+    <h1 class="text-4xl font-bold text-textc-main mb-3">Doctor Registration</h1>
+    <p class="text-textc-muted text-lg max-w-2xl mx-auto">
+      Join our professional healthcare platform to manage appointments and serve patients with excellence
+    </p>
+  </div>
+
+  <div class="card-style p-8">
+
+    <form method="POST" class="space-y-8" action="{% url 'signup_doctor' %}">
+      {% csrf_token %}
+
+      <!-- Messages -->
+      {% if messages %}
+      {% for message in messages %}
+      <div class="p-4 rounded-lg border text-sm
+            {% if message.tags == 'error' %}
+              bg-brand-danger/10 text-brand-danger border-brand-danger/30
+            {% else %}
+              bg-brand-success/10 text-brand-success border-brand-success/30
+            {% endif %}
+          ">
+        <i
+          class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% else %}check-circle{% endif %} mr-2"></i>
+        {{ message }}
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <!-- ================= PROFESSIONAL INFO ================= -->
+      <section class="bg-brand-surface rounded-xl p-6 border border-brand-accent">
+        <h3 class="text-xl font-semibold text-textc-main mb-6 flex items-center">
+          <i class="fas fa-user-md text-brand-primary mr-3"></i>
+          Professional Information
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-2">
+              <i class="fas fa-user text-brand-primary mr-2"></i>
+              Username *
+            </label>
+            <input type="text" name="username" required class="w-full px-4 py-3 bg-white border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition" placeholder="Choose a unique username">
+            <p class="text-xs text-textc-muted mt-1">
+              <i class="fas fa-info-circle mr-1"></i>
+              This will be your login username
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-2">
+              <i class="fas fa-stethoscope text-brand-primary mr-2"></i>
+              Specialization *
+            </label>
+            <select name="specialization" required class="w-full px-4 py-3 bg-white border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition">
+              <option value="">Select your specialization</option>
+              <option value="General Practice">General Practice</option>
+              <option value="Cardiology">Cardiology</option>
+              <option value="Dermatology">Dermatology</option>
+              <option value="Endocrinology">Endocrinology</option>
+              <option value="Gastroenterology">Gastroenterology</option>
+              <option value="Neurology">Neurology</option>
+              <option value="Oncology">Oncology</option>
+              <option value="Orthopedics">Orthopedics</option>
+              <option value="Pediatrics">Pediatrics</option>
+              <option value="Psychiatry">Psychiatry</option>
+              <option value="Radiology">Radiology</option>
+              <option value="Surgery">Surgery</option>
+              <option value="Urology">Urology</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-2">
+              <i class="fas fa-calendar text-brand-primary mr-2"></i>
+              Years of Experience *
+            </label>
+            <input type="number" name="experience_years" min="0" max="50" required class="w-full px-4 py-3 bg-white border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition" placeholder="e.g. 10">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-2">
+              <i class="fas fa-dollar-sign text-brand-primary mr-2"></i>
+              Consultation Fee ($)
+            </label>
+            <input type="number" name="consultation_fee" min="0" step="0.01" class="w-full px-4 py-3 bg-white border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition" placeholder="e.g. 150">
+            <p class="text-xs text-textc-muted mt-1">
+              <i class="fas fa-lightbulb mr-1"></i>
+              Optional - Set your consultation fee
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <label class="block text-sm font-medium text-textc-muted mb-2">
+            <i class="fas fa-file-text text-brand-primary mr-2"></i>
+            Professional Description
+          </label>
+          <textarea name="description" rows="4" class="w-full px-4 py-3 bg-white border border-brand-accent rounded-lg text-textc-main
+                   focus:outline-none focus:border-brand-primary transition resize-none"
+            placeholder="Describe your expertise, specializations, and patient care approach..."></textarea>
+          <p class="text-xs text-textc-muted mt-1">
+            <i class="fas fa-info-circle mr-1"></i>
+            Help patients understand your expertise and approach
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= CONTACT INFO ================= -->
+      <section class="bg-brand-surface rounded-xl p-6 border border-brand-accent">
+        <h3 class="text-xl font-semibold text-textc-main mb-6 flex items-center">
+          <i class="fas fa-address-card text-brand-primary mr-3"></i>
+          Contact Information
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-2">
+              <i class="fas fa-envelope text-brand-primary mr-2"></i>
+              Email
+            </label>
+            <input type="email" name="email" class="w-full px-4 py-3 bg-white border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition" placeholder="doctor@example.com">
+            <p class="text-xs text-textc-muted mt-1">
+              <i class="fas fa-info-circle mr-1"></i>
+              We'll use this for appointment notifications
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-2">
+              <i class="fas fa-phone text-brand-primary mr-2"></i>
+              Phone Number
+            </label>
+            <input type="tel" name="phone" class="w-full px-4 py-3 bg-white border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition" placeholder="+91 XXXXX XXXXX">
+            <p class="text-xs text-textc-muted mt-1">
+              <i class="fas fa-shield-alt mr-1"></i>
+              We'll contact you for urgent appointments
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-2">
+              <i class="fas fa-lock text-brand-primary mr-2"></i>
+              Password *
+            </label>
+            <input type="password" name="password" required class="w-full px-4 py-3 bg-white border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition" placeholder="Create a strong password">
+            <p class="text-xs text-textc-muted mt-1">
+              <i class="fas fa-key mr-1"></i>
+              Minimum 8 characters recommended
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-2">
+              <i class="fas fa-lock-open text-brand-primary mr-2"></i>
+              Confirm Password *
+            </label>
+            <input type="password" name="password_confirm" required class="w-full px-4 py-3 bg-white border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition" placeholder="Confirm your password">
+            <p class="text-xs text-textc-muted mt-1">
+              <i class="fas fa-check mr-1"></i>
+              Must match the password above
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PRACTICE INFO ================= -->
+      <section class="bg-brand-surface rounded-xl p-6 border border-brand-accent">
+        <h3 class="text-xl font-semibold text-textc-main mb-6 flex items-center">
+          <i class="fas fa-hospital text-brand-primary mr-3"></i>
+          Practice Information
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-2">
+              <i class="fas fa-building text-brand-primary mr-2"></i>
+              Hospital / Clinic
+            </label>
+            <input type="text" name="affiliation" class="w-full px-4 py-3 bg-white border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition"
+              placeholder="Your clinic or hospital name">
+            <p class="text-xs text-textc-muted mt-1">
+              <i class="fas fa-map-marker-alt mr-1"></i>
+              Where you practice
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-2">
+              <i class="fas fa-certificate text-brand-primary mr-2"></i>
+              License Number
+            </label>
+            <input type="text" name="license_number" class="w-full px-4 py-3 bg-white border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition"
+              placeholder="Your medical license number">
+            <p class="text-xs text-textc-muted mt-1">
+              <i class="fas fa-id-card mr-1"></i>
+              For verification purposes
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= NOTIFICATIONS ================= -->
+      <section class="bg-brand-surface rounded-xl p-6 border border-brand-accent">
+        <h3 class="text-xl font-semibold text-textc-main mb-6 flex items-center">
+          <i class="fas fa-bell text-brand-primary mr-3"></i>
+          Notification Preferences
+        </h3>
+
+        <div class="space-y-4">
+          <label class="flex items-start space-x-3 cursor-pointer group">
+            <input type="checkbox" name="email_notifications" value="true" checked
+              class="w-5 h-5 mt-0.5 rounded border-brand-accent text-brand-primary focus:ring-brand-primary">
+            <div>
+              <span class="text-textc-main font-medium group-hover:text-brand-primary transition-colors">
+                Email Notifications
+              </span>
+              <p class="text-sm text-textc-muted">
+                Receive email notifications for new appointments and updates
+              </p>
+            </div>
+          </label>
+
+          <label class="flex items-start space-x-3 cursor-pointer group">
+            <input type="checkbox" name="sms_notifications" value="true"
+              class="w-5 h-5 mt-0.5 rounded border-brand-accent text-brand-primary focus:ring-brand-primary">
+            <div>
+              <span class="text-textc-main font-medium group-hover:text-brand-primary transition-colors">
+                SMS Notifications
+              </span>
+              <p class="text-sm text-textc-muted">
+                Get SMS alerts for urgent appointments and critical updates
+              </p>
+            </div>
+          </label>
+        </div>
+      </section>
+
+      <!-- ================= VERIFICATION ================= -->
+      <div class="bg-brand-success/10 border border-brand-success/30 rounded-xl p-6">
+        <div class="flex items-start space-x-4">
+          <div class="w-12 h-12 bg-brand-success/20 rounded-full flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-shield-check text-brand-success text-xl"></i>
+          </div>
+          <div>
+            <h4 class="text-lg font-semibold text-brand-success mb-2">Professional Verification</h4>
+            <p class="text-sm text-textc-muted leading-relaxed">
+              Your credentials and information will be thoroughly reviewed by our medical verification team.
+              Your profile will be activated within 24-48 hours after successful verification.
+            </p>
+            <div class="mt-3 flex items-center space-x-4 text-xs text-brand-success">
+              <span><i class="fas fa-check-circle mr-1"></i>Identity Verification</span>
+              <span><i class="fas fa-check-circle mr-1"></i>License Validation</span>
+              <span><i class="fas fa-check-circle mr-1"></i>Background Check</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TERMS ================= -->
+      <div class="bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-6">
+        <div class="flex items-start space-x-4">
+          <input type="checkbox" name="terms_accepted" id="terms_accepted" required
+            class="w-5 h-5 mt-1 rounded border-brand-accent text-brand-primary focus:ring-brand-primary">
+          <div class="flex-1">
+            <label for="terms_accepted"
+              class="text-textc-main font-medium cursor-pointer hover:text-brand-primary transition-colors">
+              I agree to the Terms of Service and Privacy Policy
+            </label>
+            <p class="text-sm text-textc-muted mt-2 leading-relaxed">
+              By creating your doctor account, you agree to our
+              <a href="#" class="text-brand-primary hover:underline font-medium">Terms of Service</a>,
+              <a href="#" class="text-brand-primary hover:underline font-medium">Privacy Policy</a>,
+              and medical professional guidelines. You also consent to our medical verification process.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= ACTIONS ================= -->
+      <div class="flex flex-col sm:flex-row justify-between gap-4 pt-8 border-t border-brand-accent">
+        <a href="{% url 'home' %}" class="px-6 py-3 bg-brand-accent text-brand-primary rounded-lg font-semibold 
+                  transition-all duration-200 text-center hover:bg-brand-accent/80">
+          <i class="fas fa-arrow-left mr-2"></i>
+          Back to Home
+        </a>
+        <button type="submit" class="px-8 py-3 btn-primary font-bold rounded-lg transition-all duration-200">
+          <i class="fas fa-user-md mr-2"></i>
+          Complete Registration
+        </button>
+      </div>
+
+    </form>
+
+    <!-- Footer -->
+    <div class="border-t border-brand-accent mt-8 pt-6 text-center">
+      <p class="text-textc-muted">
+        Already have an account?
+        <a href="{% url 'login' %}" class="text-brand-primary hover:underline font-medium transition-colors">
+          Sign in to your account
+        </a>
+      </p>
+      <div class="mt-4 flex justify-center space-x-6 text-sm text-textc-muted">
+        <span><i class="fas fa-lock text-brand-primary mr-1"></i>Secure Registration</span>
+        <span><i class="fas fa-check-circle text-brand-primary mr-1"></i>Verified Doctors</span>
+        <span><i class="fas fa-shield-alt text-brand-primary mr-1"></i>HIPAA Compliant</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const passwordField = document.querySelector('input[name="password"]');
+    const confirmPasswordField = document.querySelector('input[name="password_confirm"]');
+    const submitButton = document.querySelector('button[type="submit"]');
+
+    function validatePasswords() {
+      const password = passwordField.value;
+      const confirmPassword = confirmPasswordField.value;
+
+      if (confirmPassword && password !== confirmPassword) {
+        confirmPasswordField.setCustomValidity('Passwords do not match');
+        confirmPasswordField.classList.add('border-brand-danger');
+      } else {
+        confirmPasswordField.setCustomValidity('');
+        confirmPasswordField.classList.remove('border-brand-danger');
+      }
+    }
+
+    if (passwordField && confirmPasswordField) {
+      passwordField.addEventListener('input', validatePasswords);
+      confirmPasswordField.addEventListener('input', validatePasswords);
+    }
+
+    // Form submission enhancement
+    const form = document.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        if (!confirmPasswordField.checkValidity()) {
+          e.preventDefault();
+          confirmPasswordField.reportValidity();
+        } else {
+          // Add loading state to submit button
+          submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating Account...';
+          submitButton.disabled = true;
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

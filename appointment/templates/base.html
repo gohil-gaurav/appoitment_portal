@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Doctor Appointment Portal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Flowbite -->
+<link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.css" rel="stylesheet" />
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<!-- Tailwind Config -->
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          bg: '#FFFAF3',
+          surface: '#FFF5E6',
+          primary: '#842A3B',
+          secondary: '#A3485A',
+          accent: '#F5DAA7',
+          success: '#2D6A4F',
+          warning: '#E07B39',
+          danger: '#A94442',
+        },
+        textc: {
+          main: '#2C1810',
+          muted: '#6B4D3E',
+        }
+      },
+      boxShadow: {
+        card: '0 4px 20px rgba(44, 24, 16, 0.08)',
+        hover: '0 8px 30px rgba(44, 24, 16, 0.12)',
+      },
+      animation: {
+        fadeUp: 'fadeUp .6s ease-out',
+      },
+      keyframes: {
+        fadeUp: {
+          '0%': { opacity: 0, transform: 'translateY(16px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        }
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.card-style {
+  background: #FFFFFF;
+  border: 1px solid #F5DAA7;
+  box-shadow: 0 4px 20px rgba(44, 24, 16, 0.08);
+  border-radius: 1rem;
+}
+.card-style:hover {
+  box-shadow: 0 8px 30px rgba(44, 24, 16, 0.12);
+}
+.btn-primary {
+  background: #842A3B;
+  color: white;
+  transition: all 0.2s ease;
+}
+.btn-primary:hover {
+  background: #6B2230;
+}
+.btn-secondary {
+  background: #A3485A;
+  color: white;
+  transition: all 0.2s ease;
+}
+.btn-secondary:hover {
+  background: #8B3D4D;
+}
+.btn-accent {
+  background: #F5DAA7;
+  color: #842A3B;
+  transition: all 0.2s ease;
+}
+.btn-accent:hover {
+  background: #EDD09A;
+}
+</style>
+</head>
+
+<body class="bg-brand-bg text-textc-main min-h-screen flex flex-col">
+
+<!-- NAVBAR -->
+<nav class="bg-white border-b border-brand-accent sticky top-0 z-40 shadow-card">
+<div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+
+<!-- Logo -->
+<a href="/" class="text-xl font-semibold text-brand-primary tracking-wide flex items-center space-x-2">
+<i class="fas fa-stethoscope"></i>
+<span>Doctor Portal</span>
+</a>
+
+<!-- Navigation -->
+<div class="flex items-center space-x-6 text-sm md:text-base">
+
+<a href="/" class="text-textc-muted hover:text-brand-primary transition">
+<i class="fas fa-home mr-1"></i>Home
+</a>
+
+<a href="/doctors/" class="text-textc-muted hover:text-brand-primary transition">
+<i class="fas fa-user-md mr-1"></i>Doctors
+</a>
+
+{# ======================================================================== #}
+{# AUTHENTICATED USER SECTION: Show dashboard, notifications, and user menu #}
+{# ======================================================================== #}
+{% if user.is_authenticated %}
+
+    {# ---------------------------------------------------------------- #}
+    {# ROLE-BASED DASHBOARD LINK: Redirect to appropriate dashboard #}
+    {# Patient users see patient dashboard, others see doctor dashboard #}
+    {# ---------------------------------------------------------------- #}
+    {% if user.profile.role == 'patient' %}
+        <a href="{% url 'patient_dashboard' %}" class="text-textc-muted hover:text-brand-primary transition">
+            <i class="fas fa-gauge mr-1"></i>Dashboard
+        </a>
+    {% else %}
+        <a href="{% url 'doctor_dashboard' %}" class="text-textc-muted hover:text-brand-primary transition">
+            <i class="fas fa-gauge mr-1"></i>Dashboard
+        </a>
+    {% endif %}
+
+    <!-- Notification -->
+    <div class="relative">
+        {# Notification bell button with unread count badge #}
+        <button id="notificationButton" class="relative text-textc-muted hover:text-brand-primary transition">
+            <i class="fas fa-bell"></i>
+            {% with unread_count=unread_notifications|default:0 %}
+            {# Show red badge with unread count if user has notifications #}
+            {% if unread_count > 0 %}
+            <span class="absolute -top-1 -right-1 bg-brand-danger text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                {{ unread_count }}
+            </span>
+            {% endif %}
+            {% endwith %}
+        </button>
+
+        {# Notification dropdown panel #}
+        <div id="notificationDropdown" class="hidden absolute right-0 mt-3 w-80 card-style z-50">
+            <div class="p-4 border-b border-brand-accent flex justify-between">
+                <h3 class="font-semibold text-textc-main">Notifications</h3>
+                <button onclick="markAllRead()" class="text-brand-primary text-sm">Mark all</button>
+            </div>
+
+            <div class="max-h-64 overflow-y-auto">
+                {# Check if user has any notifications #}
+                {% if user.notifications.all %}
+                    {# Loop through latest 5 notifications #}
+                    {% for notification in user.notifications.all|slice:":5" %}
+                    {# Highlight unread notifications with bg-brand-accent/30 #}
+                    <div class="p-3 border-b border-brand-accent/50 {% if not notification.is_read %}bg-brand-accent/30{% endif %}">
+                        <h4 class="text-sm font-medium text-textc-main">{{ notification.title }}</h4>
+                        <p class="text-xs text-textc-muted">{{ notification.message|truncatechars:50 }}</p>
+                        <p class="text-xs text-textc-muted/70 mt-1">{{ notification.created_at|timesince }} ago</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    {# Show message when no notifications exist #}
+                    <p class="p-4 text-center text-textc-muted">No notifications</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Role -->
+    <span class="px-3 py-1 rounded-full text-xs bg-brand-accent text-brand-primary font-medium">
+        {{ user.profile.role|title }}
+    </span>
+
+    <!-- User Menu -->
+    <div class="relative">
+        <button id="userMenuButton" class="text-textc-muted hover:text-brand-primary transition">
+            {{ user.username }} <i class="fas fa-chevron-down ml-1 text-xs"></i>
+        </button>
+
+        <div id="userDropdown" class="hidden absolute right-0 mt-3 w-48 card-style z-50">
+            <a href="#" class="block px-4 py-2 hover:bg-brand-accent/30 text-textc-main">Profile</a>
+            <form method="post" action="/logout/">
+                {% csrf_token %}
+                <button class="w-full text-left px-4 py-2 text-brand-danger hover:bg-brand-accent/30">Logout</button>
+            </form>
+        </div>
+    </div>
+
+{# ======================================================================== #}
+{# GUEST USER SECTION: Show login and register options #}
+{# ======================================================================== #}
+{% else %}
+
+    <a href="/login/" class="px-4 py-2 rounded-xl btn-primary font-semibold">
+        Login
+    </a>
+
+    <div class="relative">
+        <button id="registerDropdown" class="px-4 py-2 rounded-xl btn-accent font-medium">
+            Register <i class="fas fa-chevron-down ml-1 text-xs"></i>
+        </button>
+
+        <div id="registerMenu" class="hidden absolute right-0 mt-3 w-40 card-style z-50">
+            <a href="{% url 'signup_patient' %}" class="block px-4 py-2 hover:bg-brand-accent/30 text-textc-main">Patient</a>
+            <a href="{% url 'signup_doctor' %}" class="block px-4 py-2 hover:bg-brand-accent/30 text-textc-main">Doctor</a>
+        </div>
+    </div>
+
+{% endif %}
+</div>
+</div>
+</nav>
+
+<!-- MAIN -->
+<main class="flex-grow max-w-screen-xl mx-auto px-6 py-12 animate-fadeUp">
+{% block content %}
+{% endblock %}
+</main>
+
+<!-- FOOTER -->
+<footer class="text-center py-4 text-textc-muted border-t border-brand-accent text-sm bg-white">
+© 2026 Doctor Appointment Portal • Django + Tailwind
+</footer>
+
+<!-- Flowbite -->
+<script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+const toggle=(b,d)=>b&&d&&b.addEventListener('click',()=>d.classList.toggle('hidden'))
+toggle(userMenuButton,userDropdown)
+toggle(notificationButton,notificationDropdown)
+toggle(registerDropdown,registerMenu)
+})
+</script>
+
+</body>
+</html>

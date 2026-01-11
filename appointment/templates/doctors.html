@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<!-- Page Title -->
+<h2 class="text-3xl font-bold text-center mb-10 text-brand-primary">
+    Available Doctors
+</h2>
+
+<!-- Doctors Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+
+    {% for d in doctors %}
+    <div class="card-style transition-all hover:-translate-y-1">
+
+        <div class="p-6 flex flex-col h-full">
+
+            <!-- Doctor Info -->
+            <div class="mb-4">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h3 class="text-xl font-semibold text-textc-main">
+                            {{ d.name }}
+                        </h3>
+
+                        <p class="text-brand-primary font-medium mt-1">
+                            {{ d.specialization }}
+                        </p>
+                    </div>
+
+                    <!-- Rating Badge -->
+                    {% if d.total_reviews > 0 %}
+                    <div class="text-right">
+                        <div class="flex items-center gap-1">
+                            <i class="fas fa-star text-yellow-500 text-sm"></i>
+                            <span class="text-textc-main font-medium">{{ d.average_rating|floatformat:1 }}</span>
+                        </div>
+                        <p class="text-xs text-textc-muted">{{ d.total_reviews }} reviews</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <p class="text-sm text-textc-muted mt-3 flex items-center">
+                    <i class="far fa-clock mr-2"></i>
+                    {{ d.available_from|default:"09:00" }} – {{ d.available_to|default:"17:00" }}
+                </p>
+
+                {% if d.consultation_fee %}
+                <p class="text-sm text-brand-success mt-2">
+                    <i class="fas fa-tag mr-1"></i>
+                    ${{ d.consultation_fee }} per visit
+                </p>
+                {% endif %}
+
+                {% if d.experience_years %}
+                <p class="text-sm text-textc-muted mt-1">
+                    <i class="fas fa-briefcase mr-1"></i>
+                    {{ d.experience_years }} years experience
+                </p>
+                {% endif %}
+            </div>
+
+            <!-- Spacer -->
+            <div class="flex-grow"></div>
+
+            <!-- Actions -->
+            <div class="mt-4 space-y-2">
+                <a href="{% url 'doctor_detail' d.id %}" class="block text-center w-full px-4 py-2 rounded-xl
+                          bg-brand-accent text-brand-primary font-medium
+                          hover:bg-brand-accent/80 transition">
+                    <i class="fas fa-info-circle mr-1"></i> View Details
+                </a>
+                <a href="/book/{{ d.id }}/" class="block text-center w-full px-4 py-3 rounded-xl
+                          btn-primary font-semibold
+                          transition-all duration-300">
+                    <i class="fas fa-calendar-check mr-2"></i>
+                    Book Appointment
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+
+    <p class="text-center text-textc-muted col-span-3 py-10">
+        No doctors available.
+    </p>
+
+    {% endfor %}
+</div>
+
+{% endblock %}

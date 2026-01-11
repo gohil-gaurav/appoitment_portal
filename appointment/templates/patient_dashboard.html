@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto px-4">
+
+  <!-- Header -->
+  <div class="mb-10">
+    <h1 class="text-3xl font-bold text-textc-main mb-1">Patient Dashboard</h1>
+    <p class="text-textc-muted">Manage your appointments and health records</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+    {% for stat in stats %}
+    <div class="card-style p-6 transition-all hover:-translate-y-1">
+      <div class="flex justify-between items-center">
+
+        <div>
+          <p class="text-textc-muted text-sm">{{ stat.title }}</p>
+          <p class="text-2xl font-bold text-textc-main">{{ stat.value }}</p>
+        </div>
+
+        {# ================================================================== #}
+        {# STAT ICON COLORS: Dynamic coloring based on stat color attribute #}
+        {# blue: Info/General stats (default) #}
+        {# green: Success/Completed stats #}
+        {# red: Error/Cancelled stats #}
+        {# yellow: Warning/Pending stats #}
+        {# ================================================================== #}
+        <div class="w-12 h-12 rounded-lg flex items-center justify-center
+          {% if stat.color == 'blue' %} bg-brand-primary/10 text-brand-primary
+          {% elif stat.color == 'green' %} bg-brand-success/10 text-brand-success
+          {% elif stat.color == 'red' %} bg-brand-danger/10 text-brand-danger
+          {% elif stat.color == 'yellow' %} bg-brand-warning/10 text-brand-warning
+          {% endif %}
+        ">
+          <i class="fas fa-{{ stat.icon }}"></i>
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+    <!-- Appointments -->
+    <div class="lg:col-span-2">
+      <div class="card-style">
+
+        <div class="p-6 border-b border-brand-accent flex justify-between">
+          <h2 class="text-xl font-semibold text-textc-main">My Appointments</h2>
+        </div>
+
+        <div class="p-6 space-y-4">
+          {% for appointment in appointments %}
+          <div class="rounded-xl p-5 border border-brand-accent bg-brand-surface">
+
+            <div class="flex justify-between gap-4">
+              <div>
+                <div class="flex gap-2 items-center mb-2">
+                  <h3 class="text-textc-main font-semibold">
+                    {{ appointment.doctor.name }}
+                  </h3>
+
+                  <span class="px-2 py-1 text-xs rounded-full bg-brand-primary/10 text-brand-primary">
+                    {{ appointment.get_status_display }}
+                  </span>
+                </div>
+
+                <div class="text-sm text-textc-muted space-y-1">
+                  <div>
+                    <i class="fas fa-calendar mr-1"></i>
+                    {{ appointment.appointment_date }} at {{ appointment.appointment_time }}
+                  </div>
+                  <div>
+                    <i class="fas fa-user-md mr-1"></i>
+                    {{ appointment.doctor.specialization }}
+                  </div>
+                </div>
+
+                {% if appointment.reason %}
+                <p class="mt-2 text-sm text-textc-muted">
+                  {{ appointment.reason|truncatechars:100 }}
+                </p>
+                {% endif %}
+              </div>
+
+              <!-- Actions -->
+              <div class="flex flex-col gap-2">
+                {# ================================================================== #}
+                {# CANCEL BUTTON: Only show for active/cancellable appointment statuses #}
+                {# pending: Appointment awaiting doctor approval #}
+                {# approved: Appointment approved, awaiting scheduling #}
+                {# scheduled: Appointment has date/time assigned #}
+                {# Completed and cancelled appointments cannot be cancelled #}
+                {# ================================================================== #}
+                {% if appointment.status == "pending" or appointment.status == "approved" or appointment.status ==
+                "scheduled" %}
+                <button onclick="cancelAppointment({{ appointment.id }})"
+                  class="cancel-btn px-3 py-1.5 bg-brand-danger/80 hover:bg-brand-danger text-white rounded-lg text-sm transition-all duration-200"
+                  data-appointment-id="{{ appointment.id }}">
+                  <span class="cancel-text">Cancel</span>
+                  <span class="cancel-loading hidden">
+                    <i class="fas fa-spinner fa-spin mr-1"></i>
+                    Cancelling...
+                  </span>
+                </button>
+                {% endif %}
+
+                {# ================================================================== #}
+                {# RESCHEDULE LINK: Only show if appointment can be rescheduled #}
+                {# This is determined by backend logic (e.g., within reschedule window) #}
+                {# ================================================================== #}
+                {% if appointment.can_be_rescheduled %}
+                <a href="{% url 'reschedule_appointment' appointment.id %}"
+                  class="px-3 py-1.5 bg-brand-primary/80 hover:bg-brand-primary text-white rounded-lg text-sm text-center">
+                  Reschedule
+                </a>
+                {% endif %}
+              </div>
+
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center py-10 text-textc-muted">
+            No appointments found
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+
+      <!-- Notifications -->
+      <div class="card-style">
+        <div class="p-6 border-b border-brand-accent">
+          <h2 class="text-lg font-semibold text-textc-main">Notifications</h2>
+        </div>
+
+        <div class="p-6 space-y-4">
+          {# Check if user has notifications #}
+          {% for notification in notifications %}
+          <div class="p-3 rounded-lg bg-brand-surface border border-brand-accent">
+            <p class="text-sm text-textc-main font-medium">{{ notification.title }}</p>
+            <p class="text-xs text-textc-muted">{{ notification.message }}</p>
+            {# Show relative time (e.g., "2 hours ago") #}
+            <p class="text-xs text-textc-muted/70 mt-1">
+              {{ notification.created_at|timesince }} ago
+            </p>
+          </div>
+          {% empty %}
+          {# Empty state: Show when no notifications exist #}
+          <p class="text-sm text-textc-muted text-center">No notifications</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card-style p-6">
+        <h2 class="text-lg font-semibold text-textc-main mb-4">Quick Actions</h2>
+        <div class="space-y-3">
+          <a href="{% url 'doctors' %}" class="block w-full py-2 rounded-lg btn-primary text-center font-medium">
+            Book New Appointment
+          </a>
+          <a href="{% url 'manage_reminders' %}"
+            class="block w-full py-2 rounded-lg bg-brand-accent text-brand-primary text-center font-medium hover:bg-brand-accent/80 transition">
+            <i class="fas fa-bell mr-1"></i> Reminders
+          </a>
+          <a href="{% url 'my_reviews' %}"
+            class="block w-full py-2 rounded-lg bg-brand-accent text-brand-primary text-center font-medium hover:bg-brand-accent/80 transition">
+            <i class="fas fa-star mr-1"></i> My Reviews
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+<script>
+  async function cancelAppointment(appointmentId) {
+    // Show confirmation dialog
+    if (!confirm('Are you sure you want to cancel this appointment?')) {
+      return;
+    }
+
+    const cancelBtn = document.querySelector(`[data-appointment-id="${appointmentId}"]`);
+    const cancelText = cancelBtn.querySelector('.cancel-text');
+    const cancelLoading = cancelBtn.querySelector('.cancel-loading');
+
+    // Show loading state
+    cancelBtn.disabled = true;
+    cancelText.classList.add('hidden');
+    cancelLoading.classList.remove('hidden');
+    cancelBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}/update-status/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          status: 'cancelled'
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Show success message
+        showNotification('Appointment cancelled successfully!', 'success');
+
+        // Update the UI
+        updateAppointmentUI(appointmentId, 'cancelled');
+      } else {
+        // Show error message
+        showNotification(data.error || 'Failed to cancel appointment', 'error');
+
+        // Reset button state
+        resetButtonState(cancelBtn, cancelText, cancelLoading);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showNotification('An error occurred while cancelling the appointment', 'error');
+
+      // Reset button state
+      resetButtonState(cancelBtn, cancelText, cancelLoading);
+    }
+  }
+
+  function updateAppointmentUI(appointmentId, newStatus) {
+    const appointmentCard = document.querySelector(`[data-appointment-id="${appointmentId}"]`).closest('.rounded-xl');
+
+    // Update status badge
+    const statusBadge = appointmentCard.querySelector('.px-2.py-1.text-xs.rounded-full');
+    if (statusBadge) {
+      statusBadge.textContent = 'Cancelled';
+      statusBadge.className = 'px-2 py-1 text-xs rounded-full bg-brand-danger/10 text-brand-danger';
+    }
+
+    // Hide cancel button
+    const cancelBtn = appointmentCard.querySelector(`[data-appointment-id="${appointmentId}"]`);
+    if (cancelBtn) {
+      cancelBtn.remove();
+    }
+
+    // Update stats if needed (this would require a page refresh or more complex DOM manipulation)
+    // For now, we'll just show the notification
+  }
+
+  function resetButtonState(cancelBtn, cancelText, cancelLoading) {
+    cancelBtn.disabled = false;
+    cancelText.classList.remove('hidden');
+    cancelLoading.classList.add('hidden');
+    cancelBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+  }
+
+  function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 ${type === 'success' ? 'bg-brand-success text-white' : 'bg-brand-danger text-white'
+      }`;
+    notification.textContent = message;
+
+    document.body.appendChild(notification);
+
+    // Animate in
+    setTimeout(() => {
+      notification.classList.remove('translate-x-full');
+    }, 100);
+
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+      notification.classList.add('translate-x-full');
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 300);
+    }, 3000);
+  }
+
+  // Get CSRF token for Django
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>

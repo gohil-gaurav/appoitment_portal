@@ -1,0 +1,400 @@
+{% extends 'base_enhanced.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-sm text-textc-muted mb-6">
+        <a href="/" class="hover:text-brand-primary">Home</a>
+        <i class="fas fa-chevron-right text-xs"></i>
+        <a href="/doctors/" class="hover:text-brand-primary">Doctors</a>
+        <i class="fas fa-chevron-right text-xs"></i>
+        <span class="text-textc-main">{{ doctor.name }}</span>
+    </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Doctor Profile Card -->
+            <div class="card-style p-6">
+                <div class="flex flex-col md:flex-row gap-6">
+                    <!-- Avatar -->
+                    <div
+                        class="w-32 h-32 rounded-2xl bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-user-md text-5xl text-brand-primary"></i>
+                    </div>
+
+                    <!-- Info -->
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <h1 class="text-2xl font-bold text-textc-main">{{ doctor.name }}</h1>
+                                <p class="text-brand-primary">{{ doctor.specialization }}</p>
+
+                                <!-- Rating -->
+                                <div class="flex items-center gap-2 mt-2">
+                                    <div class="flex items-center">
+                                        {% with ''|center:5 as range %}
+                                        {% for _ in range %}
+                                        {% if forloop.counter <= doctor.average_rating|floatformat:0|add:0 %} <i
+                                            class="fas fa-star text-yellow-500"></i>
+                                            {% else %}
+                                            <i class="far fa-star text-gray-400"></i>
+                                            {% endif %}
+                                            {% endfor %}
+                                            {% endwith %}
+                                    </div>
+                                    <span class="text-textc-main font-medium">{{ doctor.average_rating|floatformat:1
+                                        }}</span>
+                                    <span class="text-textc-muted">({{ doctor.total_reviews }} reviews)</span>
+                                </div>
+                            </div>
+
+                            <a href="{% url 'book' doctor.id %}" class="px-6 py-3 btn-primary font-semibold rounded-xl">
+                                <i class="fas fa-calendar-check mr-2"></i> Book Appointment
+                            </a>
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="grid grid-cols-3 gap-4 mt-6">
+                            <div class="p-3 rounded-lg bg-brand-surface text-center">
+                                <p class="text-2xl font-bold text-textc-main">{{ doctor.experience_years }}+</p>
+                                <p class="text-xs text-textc-muted">Years Experience</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-brand-surface text-center">
+                                <p class="text-2xl font-bold text-textc-main">${{ doctor.consultation_fee }}</p>
+                                <p class="text-xs text-textc-muted">Consultation Fee</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-brand-surface text-center">
+                                <p class="text-2xl font-bold text-textc-main">
+                                    {% if doctor.affiliation %}{{ doctor.affiliation }}{% else %}N/A{% endif %}
+                                </p>
+                                <p class="text-xs text-textc-muted">Affiliation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                {% if doctor.description %}
+                <div class="mt-6 pt-6 border-t border-brand-accent">
+                    <h3 class="text-lg font-semibold text-textc-main mb-2">About</h3>
+                    <p class="text-textc-muted">{{ doctor.description }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Reviews Section -->
+            <div class="card-style p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold text-textc-main">
+                        <i class="fas fa-star text-yellow-500 mr-2"></i>
+                        Patient Reviews
+                    </h2>
+
+                    {% if can_review %}
+                    <button onclick="showReviewForm()" class="px-4 py-2 btn-primary font-medium rounded-lg">
+                        <i class="fas fa-pen mr-2"></i> Write Review
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Rating Summary -->
+                {% if doctor.total_reviews > 0 %}
+                <div class="flex items-center gap-6 p-4 rounded-xl bg-brand-surface mb-6">
+                    <div class="text-center">
+                        <p class="text-4xl font-bold text-textc-main">{{ doctor.average_rating|floatformat:1 }}</p>
+                        <div class="flex items-center mt-1">
+                            {% with ''|center:5 as range %}
+                            {% for _ in range %}
+                            {% if forloop.counter <= doctor.average_rating|floatformat:0|add:0 %} <i
+                                class="fas fa-star text-yellow-500 text-sm"></i>
+                                {% else %}
+                                <i class="far fa-star text-gray-400 text-sm"></i>
+                                {% endif %}
+                                {% endfor %}
+                                {% endwith %}
+                        </div>
+                        <p class="text-xs text-textc-muted mt-1">{{ doctor.total_reviews }} reviews</p>
+                    </div>
+
+                    <div class="flex-1">
+                        {% for i in "54321"|make_list %}
+                        <div class="flex items-center gap-2 text-sm">
+                            <span class="w-4 text-textc-muted">{{ forloop.revcounter }}</span>
+                            <div class="flex-1 h-2 bg-brand-accent rounded-full overflow-hidden">
+                                {% widthratio rating_distribution|get_item:forloop.revcounter doctor.total_reviews 100
+                                as percent %}
+                                <div class="h-full bg-yellow-500" style="width: {{ percent }}%"></div>
+                            </div>
+                            <span class="w-8 text-textc-muted text-right">{{
+                                rating_distribution|get_item:forloop.revcounter|default:0 }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Reviews List -->
+                <div class="space-y-4">
+                    {% for review in reviews %}
+                    <div class="p-4 rounded-xl bg-brand-surface border border-brand-accent">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center">
+                                    <span class="text-brand-primary font-medium">{{
+                                        review.patient.username|slice:":2"|upper }}</span>
+                                </div>
+                                <div>
+                                    <p class="text-textc-main font-medium">{{ review.patient.username }}</p>
+                                    <p class="text-xs text-textc-muted">{{ review.created_at|timesince }} ago</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                {% with ''|center:5 as range %}
+                                {% for _ in range %}
+                                {% if forloop.counter <= review.rating %} <i
+                                    class="fas fa-star text-yellow-500 text-sm"></i>
+                                    {% else %}
+                                    <i class="far fa-star text-gray-400 text-sm"></i>
+                                    {% endif %}
+                                    {% endfor %}
+                                    {% endwith %}
+                            </div>
+                        </div>
+
+                        {% if review.title %}
+                        <p class="text-textc-main font-medium mt-3">{{ review.title }}</p>
+                        {% endif %}
+
+                        <p class="text-textc-muted mt-2">{{ review.comment }}</p>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-10">
+                        <i class="far fa-comment-dots text-4xl text-textc-muted mb-3"></i>
+                        <p class="text-textc-muted">No reviews yet. Be the first to leave a review!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+
+            <!-- Contact Info -->
+            <div class="card-style p-6">
+                <h3 class="text-lg font-semibold text-textc-main mb-4">Contact Information</h3>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-brand-primary/10 flex items-center justify-center">
+                            <i class="fas fa-envelope text-brand-primary"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-textc-muted">Email</p>
+                            <p class="text-textc-main">{{ doctor.email|default:"Not provided" }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-brand-primary/10 flex items-center justify-center">
+                            <i class="fas fa-phone text-brand-primary"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-textc-muted">Phone</p>
+                            <p class="text-textc-main">{{ doctor.phone|default:"Not provided" }}</p>
+                        </div>
+                    </div>
+
+                    {% if doctor.license_number %}
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-brand-primary/10 flex items-center justify-center">
+                            <i class="fas fa-id-card text-brand-primary"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-textc-muted">License</p>
+                            <p class="text-textc-main">{{ doctor.license_number }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card-style p-6">
+                <h3 class="text-lg font-semibold text-textc-main mb-4">Quick Actions</h3>
+
+                <div class="space-y-3">
+                    <a href="{% url 'book' doctor.id %}"
+                        class="block w-full py-3 btn-primary text-center font-medium rounded-xl">
+                        <i class="fas fa-calendar-plus mr-2"></i> Book Appointment
+                    </a>
+                    <a href="/doctors/"
+                        class="block w-full py-3 bg-brand-accent text-brand-primary text-center font-medium rounded-xl hover:bg-brand-accent/80 transition">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to Doctors
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Review Form Modal -->
+    <div id="reviewModal" class="fixed inset-0 bg-black/30 hidden items-center justify-center z-50">
+        <div class="card-style p-6 max-w-lg w-full mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-textc-main">Write a Review</h3>
+                <button onclick="closeReviewModal()" class="text-textc-muted hover:text-textc-main">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <form id="reviewForm" method="post" action="{% url 'add_review' doctor.id %}">
+                {% csrf_token %}
+
+                <div class="mb-6">
+                    <label class="block text-sm text-textc-muted mb-2">Your Rating</label>
+                    <div class="flex gap-2" id="starRating">
+                        {% for i in "12345"|make_list %}
+                        <button type="button" class="star-btn text-3xl text-gray-400 hover:text-yellow-500 transition"
+                            data-rating="{{ forloop.counter }}">
+                            <i class="fas fa-star"></i>
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="rating" id="ratingInput" value="">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm text-textc-muted mb-2">Review Title (optional)</label>
+                    <input type="text" name="title" placeholder="Summarize your experience"
+                        class="w-full bg-brand-surface border border-brand-accent rounded-lg px-4 py-3 text-textc-main focus:outline-none focus:border-brand-primary">
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm text-textc-muted mb-2">Your Review</label>
+                    <textarea name="comment" rows="4" placeholder="Share your experience with this doctor..."
+                        class="w-full bg-brand-surface border border-brand-accent rounded-lg px-4 py-3 text-textc-main focus:outline-none focus:border-brand-primary resize-none"
+                        required></textarea>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeReviewModal()"
+                        class="flex-1 py-3 bg-brand-accent text-brand-primary rounded-lg hover:bg-brand-accent/80 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 py-3 btn-primary font-medium rounded-lg">
+                        Submit Review
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let selectedRating = 0;
+
+    function showReviewForm() {
+        document.getElementById('reviewModal').classList.remove('hidden');
+        document.getElementById('reviewModal').classList.add('flex');
+    }
+
+    function closeReviewModal() {
+        document.getElementById('reviewModal').classList.add('hidden');
+        document.getElementById('reviewModal').classList.remove('flex');
+        // Reset form
+        document.getElementById('reviewForm').reset();
+        selectedRating = 0;
+        updateStarDisplay();
+    }
+
+    // Star rating functionality
+    document.querySelectorAll('.star-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            selectedRating = parseInt(this.dataset.rating);
+            document.getElementById('ratingInput').value = selectedRating;
+            updateStarDisplay();
+        });
+
+        btn.addEventListener('mouseenter', function () {
+            const rating = parseInt(this.dataset.rating);
+            highlightStars(rating);
+        });
+
+        btn.addEventListener('mouseleave', function () {
+            highlightStars(selectedRating);
+        });
+    });
+
+    function updateStarDisplay() {
+        highlightStars(selectedRating);
+    }
+
+    function highlightStars(count) {
+        document.querySelectorAll('.star-btn').forEach(function (btn, index) {
+            if (index < count) {
+                btn.classList.add('text-yellow-500');
+                btn.classList.remove('text-gray-400');
+            } else {
+                btn.classList.remove('text-yellow-500');
+                btn.classList.add('text-gray-400');
+            }
+        });
+    }
+
+    // Form submission
+    document.getElementById('reviewForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        if (!selectedRating) {
+            alert('Please select a rating');
+            return;
+        }
+
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Submitting...';
+
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    closeReviewModal();
+                    location.reload();
+                } else {
+                    alert(data.error || 'Error submitting review');
+                }
+            })
+            .catch(error => {
+                alert('An error occurred');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Submit Review';
+            });
+    });
+
+    // Close modal on outside click
+    document.getElementById('reviewModal').addEventListener('click', function (e) {
+        if (e.target === this) {
+            closeReviewModal();
+        }
+    });
+</script>
+{% endblock %}

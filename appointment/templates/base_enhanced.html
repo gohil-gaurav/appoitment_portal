@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Doctor Appointment Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Flowbite -->
+  <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.css" rel="stylesheet" />
+
+  <!-- AOS -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: '#FFFAF3',
+              surface: '#FFF5E6',
+              primary: '#842A3B',
+              secondary: '#A3485A',
+              accent: '#F5DAA7',
+              success: '#2D6A4F',
+              warning: '#E07B39',
+              danger: '#A94442',
+            },
+            textc: {
+              main: '#2C1810',
+              muted: '#6B4D3E',
+            }
+          },
+          boxShadow: {
+            card: '0 4px 20px rgba(44, 24, 16, 0.08)',
+            hover: '0 8px 30px rgba(44, 24, 16, 0.12)',
+          },
+          animation: {
+            fadeUp: 'fadeUp .6s ease-out',
+          },
+          keyframes: {
+            fadeUp: {
+              '0%': { opacity: 0, transform: 'translateY(16px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .card-style {
+      background: #FFFFFF;
+      border: 1px solid #F5DAA7;
+      box-shadow: 0 4px 20px rgba(44, 24, 16, 0.08);
+      border-radius: 1rem;
+    }
+
+    .card-style:hover {
+      box-shadow: 0 8px 30px rgba(44, 24, 16, 0.12);
+    }
+
+    .btn-primary {
+      background: #842A3B;
+      color: white;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      background: #6B2230;
+    }
+
+    .btn-secondary {
+      background: #A3485A;
+      color: white;
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary:hover {
+      background: #8B3D4D;
+    }
+
+    .btn-accent {
+      background: #F5DAA7;
+      color: #842A3B;
+      transition: all 0.2s ease;
+    }
+
+    .btn-accent:hover {
+      background: #EDD09A;
+    }
+  </style>
+</head>
+
+<body class="bg-brand-bg text-textc-main min-h-screen flex flex-col">
+
+  <!-- NAVBAR -->
+  <nav class="bg-white border-b border-brand-accent sticky top-0 z-50 shadow-card">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+
+      <a href="/" class="flex items-center space-x-3 text-brand-primary text-xl font-semibold">
+        <i class="fas fa-stethoscope"></i>
+        <span>Doctor Portal</span>
+      </a>
+
+      <div class="flex items-center space-x-6 text-sm">
+
+        <a href="/" class="text-textc-muted hover:text-brand-primary transition">Home</a>
+        <a href="/doctors/" class="text-textc-muted hover:text-brand-primary transition">Doctors</a>
+
+        {# ======================================================================== #}
+        {# AUTHENTICATED USER SECTION: Show dashboard link and user controls #}
+        {# ======================================================================== #}
+        {% if user.is_authenticated %}
+
+        {# ---------------------------------------------------------------- #}
+        {# ROLE-BASED DASHBOARD LINK: Redirect to appropriate dashboard #}
+        {# Checks user profile role to show patient or doctor dashboard #}
+        {# ---------------------------------------------------------------- #}
+        {% if user.profile.role == 'patient' %}
+        {# Patient users see patient dashboard #}
+        <a href="{% url 'patient_dashboard' %}" class="px-4 py-2 rounded-xl btn-primary font-semibold">
+          Dashboard
+        </a>
+        {% else %}
+        {# Doctor users (or any non-patient role) see doctor dashboard #}
+        <a href="{% url 'doctor_dashboard' %}" class="px-4 py-2 rounded-xl btn-primary font-semibold">
+          Dashboard
+        </a>
+        {% endif %}
+
+        {# Display user role badge #}
+        <span class="px-3 py-1 rounded-full text-xs bg-brand-accent text-brand-primary font-medium">
+          {{ user.profile.role|title }}
+        </span>
+
+        {# Logout form for authenticated users #}
+        <form method="post" action="/logout/">
+          {% csrf_token %}
+          <button class="px-4 py-2 rounded-xl bg-brand-danger/10 text-brand-danger hover:bg-brand-danger/20 transition">
+            Logout
+          </button>
+        </form>
+
+        {# ======================================================================== #}
+        {# GUEST USER SECTION: Show login and register options #}
+        {# ======================================================================== #}
+        {% else %}
+
+        {# Login link for non-authenticated users #}
+        <a href="/login/" class="px-4 py-2 rounded-xl btn-primary font-semibold">
+          Login
+        </a>
+
+        {# Registration dropdown with patient/doctor signup options #}
+        <div class="relative">
+          <button id="registerDropdown" class="px-4 py-2 rounded-xl btn-accent font-medium">
+            Register <i class="fas fa-chevron-down ml-1"></i>
+          </button>
+          <div id="registerMenu" class="hidden absolute right-0 mt-2 w-40 card-style">
+            <a href="{% url 'signup_patient' %}"
+              class="block px-4 py-2 hover:bg-brand-accent/30 text-textc-main">Patient</a>
+            <a href="{% url 'signup_doctor' %}"
+              class="block px-4 py-2 hover:bg-brand-accent/30 text-textc-main">Doctor</a>
+          </div>
+        </div>
+
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+
+  <main class="flex-grow max-w-7xl mx-auto px-6 py-12" data-aos="fade-up">
+    {% block content %}
+    {% endblock %}
+  </main>
+
+
+  <footer class="text-center py-6 text-textc-muted border-t border-brand-accent bg-white">
+    © 2026 Doctor Appointment Portal • Django + Tailwind
+  </footer>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.js"></script>
+
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    AOS.init({ duration: 900, once: true });
+
+    document.getElementById("registerDropdown")?.addEventListener("click", () => {
+      document.getElementById("registerMenu").classList.toggle("hidden");
+    });
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,193 @@
+{% extends 'base_enhanced.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-textc-main mb-2">
+            <i class="fas fa-bell text-brand-primary mr-3"></i>
+            Appointment Reminders
+        </h1>
+        <p class="text-textc-muted">Manage reminders for your upcoming appointments</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- Appointments List -->
+        <div class="lg:col-span-2 space-y-4">
+            {% if appointments %}
+            {% for appointment in appointments %}
+            <div class="card-style p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-textc-main">
+                            {{ appointment.doctor.name }}
+                        </h3>
+                        <p class="text-textc-muted text-sm">{{ appointment.doctor.specialization }}</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs bg-brand-primary/10 text-brand-primary">
+                        {{ appointment.appointment_date }} at {{ appointment.appointment_time }}
+                    </span>
+                </div>
+
+                <!-- Existing Reminders -->
+                {% with reminders_dict|get_item:appointment.id as apt_reminders %}
+                {% if apt_reminders %}
+                <div class="mb-4 p-3 rounded-lg bg-brand-surface">
+                    <p class="text-xs text-textc-muted mb-2">Active Reminders:</p>
+                    <div class="space-y-2">
+                        {% for reminder in apt_reminders %}
+                        <div class="flex items-center justify-between text-sm">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-clock text-brand-warning"></i>
+                                <span class="text-textc-main">{{ reminder.get_hours_before_display }}</span>
+                                <span class="text-textc-muted">({{ reminder.reminder_type }})</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                {% if reminder.is_sent %}
+                                <span class="text-brand-success text-xs">
+                                    <i class="fas fa-check mr-1"></i> Sent {{ reminder.sent_at|timesince }} ago
+                                </span>
+                                {% else %}
+                                <span class="text-brand-primary text-xs">
+                                    <i class="fas fa-clock mr-1"></i> Scheduled
+                                </span>
+                                {% endif %}
+                                <form method="post" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_reminder">
+                                    <input type="hidden" name="reminder_id" value="{{ reminder.id }}">
+                                    <button type="submit" class="text-brand-danger hover:text-brand-danger/80">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <!-- Add Reminder Form -->
+                <form method="post" class="flex items-end gap-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_reminder">
+                    <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
+
+                    <div class="flex-1">
+                        <label class="block text-xs text-textc-muted mb-1">Remind me</label>
+                        <select name="hours_before"
+                            class="w-full bg-white border border-brand-accent rounded-lg px-3 py-2 text-textc-main focus:outline-none focus:border-brand-primary">
+                            {% for value, label in reminder_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="w-32">
+                        <label class="block text-xs text-textc-muted mb-1">Via</label>
+                        <select name="reminder_type"
+                            class="w-full bg-white border border-brand-accent rounded-lg px-3 py-2 text-textc-main focus:outline-none focus:border-brand-primary">
+                            <option value="email">Email</option>
+                            <option value="sms">SMS</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="px-4 py-2 btn-primary font-medium rounded-lg">
+                        <i class="fas fa-plus mr-1"></i> Add
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="card-style p-10 text-center">
+                <i class="fas fa-calendar-check text-4xl text-textc-muted mb-4"></i>
+                <h3 class="text-lg font-medium text-textc-main mb-2">No Upcoming Appointments</h3>
+                <p class="text-textc-muted">You don't have any approved or scheduled appointments.</p>
+                <a href="/doctors/" class="inline-block mt-4 px-6 py-2 btn-primary font-medium rounded-lg">
+                    Find a Doctor
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+
+            <!-- Info Card -->
+            <div class="card-style p-6">
+                <h3 class="text-lg font-semibold text-textc-main mb-4">
+                    <i class="fas fa-info-circle text-brand-primary mr-2"></i>
+                    About Reminders
+                </h3>
+
+                <div class="space-y-3 text-sm text-textc-muted">
+                    <p>Get notified before your appointments so you never miss one!</p>
+
+                    <ul class="space-y-2 mt-4">
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-envelope text-brand-primary mt-1"></i>
+                            <span>Email reminders sent to your registered email</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-sms text-brand-primary mt-1"></i>
+                            <span>SMS reminders require phone number on file</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-clock text-brand-primary mt-1"></i>
+                            <span>Choose from preset reminder times</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card-style p-6">
+                <h3 class="text-lg font-semibold text-textc-main mb-4">Quick Actions</h3>
+
+                <div class="space-y-3">
+                    <a href="/patient/dashboard/"
+                        class="block w-full py-2 rounded-lg bg-brand-accent text-brand-primary text-center hover:bg-brand-accent/80 transition">
+                        <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+                    </a>
+                    <a href="/doctors/"
+                        class="block w-full py-2 rounded-lg bg-brand-accent text-brand-primary text-center hover:bg-brand-accent/80 transition">
+                        <i class="fas fa-user-md mr-2"></i> Find Doctors
+                    </a>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="card-style p-6">
+                <h3 class="text-lg font-semibold text-textc-main mb-4">
+                    <i class="fas fa-cog text-brand-primary mr-2"></i>
+                    Notification Settings
+                </h3>
+
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-textc-muted">Email Notifications</span>
+                        <span
+                            class="px-2 py-1 rounded-full text-xs {% if user.profile.email_notifications %}bg-brand-success/10 text-brand-success{% else %}bg-gray-400/10 text-gray-400{% endif %}">
+                            {{ user.profile.email_notifications|yesno:"On,Off" }}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-textc-muted">SMS Notifications</span>
+                        <span
+                            class="px-2 py-1 rounded-full text-xs {% if user.profile.sms_notifications %}bg-brand-success/10 text-brand-success{% else %}bg-gray-400/10 text-gray-400{% endif %}">
+                            {{ user.profile.sms_notifications|yesno:"On,Off" }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

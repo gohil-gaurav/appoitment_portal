@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-10">
+        <h1 class="text-3xl font-bold text-brand-primary mb-2">
+            Doctor Dashboard
+        </h1>
+        <p class="text-textc-muted">
+            Manage your appointments and patient care
+        </p>
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        {% for stat in "1234"|make_list %}
+        <div class="card-style p-6 transition-all hover:-translate-y-1">
+            <div class="flex items-center justify-between">
+                <div>
+                    {# ================================================================== #}
+                    {# STAT CARD LABELS: Different labels for each card based on loop index #}
+                    {# forloop.counter == 1: Total Appointments (all time count) #}
+                    {# forloop.counter == 2: Pending (appointments awaiting approval) #}
+                    {# forloop.counter == 3: Completed (successfully finished appointments) #}
+                    {# forloop.counter == 4: Today's Appointments (scheduled for today) #}
+                    {# ================================================================== #}
+                    {% if forloop.counter == 1 %}
+                    <p class="text-textc-muted text-sm">Total Appointments</p>
+                    <p class="text-2xl font-bold text-textc-main">{{ total_appointments }}</p>
+                    {% elif forloop.counter == 2 %}
+                    <p class="text-textc-muted text-sm">Pending</p>
+                    <p class="text-2xl font-bold text-brand-warning">{{ pending_appointments }}</p>
+                    {% elif forloop.counter == 3 %}
+                    <p class="text-textc-muted text-sm">Completed</p>
+                    <p class="text-2xl font-bold text-brand-success">{{ completed_appointments }}</p>
+                    {% else %}
+                    <p class="text-textc-muted text-sm">Today's Appointments</p>
+                    <p class="text-2xl font-bold text-brand-primary">{{ upcoming_appointments|length }}</p>
+                    {% endif %}
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center">
+                    <i class="fas fa-chart-line text-brand-primary"></i>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+        <!-- Appointments -->
+        <div class="lg:col-span-3">
+            <div class="card-style">
+
+                <div class="p-6 border-b border-brand-accent flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-textc-main">Appointment Management</h2>
+
+                    <div class="flex space-x-3">
+                        <select id="statusFilter"
+                            class="bg-brand-surface border border-brand-accent rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-primary text-textc-main">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+
+                        <div class="relative">
+                            <input id="searchInput" placeholder="Search patients..."
+                                class="bg-brand-surface border border-brand-accent rounded-xl pl-10 pr-4 py-2 text-sm w-64 focus:outline-none focus:border-brand-primary text-textc-main">
+                            <i class="fas fa-search absolute left-3 top-3 text-textc-muted text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    {% if appointments %}
+                    <div class="space-y-4" id="appointmentsList">
+
+                        {% for appointment in appointments %}
+                        <div class="appointment-item bg-brand-surface rounded-xl p-4 border border-brand-accent transition-all hover:-translate-y-0.5"
+                            data-status="{{ appointment.status }}"
+                            data-search="{{ appointment.patient_name|lower }} {{ appointment.reason|lower }}">
+
+                            <div class="flex justify-between">
+                                <div class="flex-1">
+
+                                    <div class="flex flex-wrap gap-2 mb-2">
+                                        <h3 class="font-semibold text-textc-main">{{ appointment.patient_name }}</h3>
+
+                                        {# Status badge showing current appointment status #}
+                                        <span
+                                            class="px-2 py-1 rounded-full text-xs bg-brand-primary/10 text-brand-primary">
+                                            {{ appointment.get_status_display }}
+                                        </span>
+
+                                        {# Priority badge showing appointment priority level #}
+                                        <span
+                                            class="px-2 py-1 rounded-full text-xs bg-brand-warning/10 text-brand-warning">
+                                            {{ appointment.get_priority_display }}
+                                        </span>
+                                    </div>
+
+                                    <p class="text-sm text-textc-muted">
+                                        <i class="far fa-calendar mr-1"></i>
+                                        {{ appointment.appointment_date }} at {{ appointment.appointment_time }}
+                                    </p>
+
+                                    <p class="text-sm text-textc-muted">
+                                        <i class="far fa-envelope mr-1"></i>
+                                        {{ appointment.patient_email }}
+                                    </p>
+
+                                    {# Conditional display: Show phone only if available #}
+                                    {% if appointment.patient_phone %}
+                                    <p class="text-sm text-textc-muted">
+                                        <i class="fas fa-phone mr-1"></i>
+                                        {{ appointment.patient_phone }}
+                                    </p>
+                                    {% endif %}
+
+                                    {# Conditional display: Show reason only if provided #}
+                                    {% if appointment.reason %}
+                                    <p class="mt-2 text-sm text-textc-main">
+                                        <span class="text-textc-muted">Reason:</span>
+                                        {{ appointment.reason|truncatechars:100 }}
+                                    </p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="flex flex-col space-y-2 ml-4">
+                                    {# ========================================================================== #}
+                                    {# STATUS-BASED ACTION BUTTONS: Different actions based on appointment status #}
+                                    {# ========================================================================== #}
+                                    {# PENDING: Can be approved or rejected by doctor #}
+                                    {% if appointment.status == 'pending' %}
+                                    <button onclick="updateStatus({{ appointment.id }}, 'approved')"
+                                        class="px-3 py-1 rounded-lg bg-brand-success/80 hover:bg-brand-success text-white transition">
+                                        Approve
+                                    </button>
+                                    <button onclick="updateStatus({{ appointment.id }}, 'rejected')"
+                                        class="px-3 py-1 rounded-lg bg-brand-danger/80 hover:bg-brand-danger text-white transition">
+                                        Reject
+                                    </button>
+                                    {# APPROVED: Can be scheduled with specific date/time #}
+                                    {% elif appointment.status == 'approved' %}
+                                    <button onclick="updateStatus({{ appointment.id }}, 'scheduled')"
+                                        class="px-3 py-1 rounded-lg btn-primary transition">
+                                        Schedule
+                                    </button>
+                                    {# SCHEDULED: Can be marked as completed or no-show #}
+                                    {% elif appointment.status == 'scheduled' %}
+                                    <button onclick="updateStatus({{ appointment.id }}, 'completed')"
+                                        class="px-3 py-1 rounded-lg bg-brand-success hover:bg-brand-success/90 text-white transition">
+                                        Complete
+                                    </button>
+                                    <button onclick="updateStatus({{ appointment.id }}, 'no_show')"
+                                        class="px-3 py-1 rounded-lg bg-gray-500 hover:bg-gray-400 text-white transition">
+                                        No Show
+                                    </button>
+                                    {% endif %}
+
+                                    {# Always available: View appointment details #}
+                                    <button onclick="viewDetails({{ appointment.id }})"
+                                        class="px-3 py-1 rounded-lg bg-brand-accent text-brand-primary hover:bg-brand-accent/80 transition">
+                                        Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    {# Empty state: Show when no appointments exist #}
+                    <p class="text-center text-textc-muted py-10">No appointments found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="lg:col-span-1 space-y-6">
+
+            <!-- Notifications -->
+            <div class="card-style">
+                <div class="p-6 border-b border-brand-accent flex justify-between">
+                    <h2 class="font-semibold text-textc-main">Notifications</h2>
+                    <button onclick="markAllRead()" class="text-brand-primary text-sm">
+                        Mark all
+                    </button>
+                </div>
+
+                <div class="p-6 space-y-4">
+                    {# Check if user has any notifications #}
+                    {% if notifications %}
+                    {# Loop through notifications and display each #}
+                    {% for notification in notifications %}
+                    <div class="p-3 rounded-xl bg-brand-surface border border-brand-accent">
+                        <h4 class="text-sm font-medium text-textc-main">{{ notification.title }}</h4>
+                        <p class="text-xs text-textc-muted mt-1">{{ notification.message }}</p>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    {# Empty state: Show when no notifications exist #}
+                    <p class="text-textc-muted text-sm text-center">No notifications</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Profile -->
+            <div class="card-style p-6 text-center">
+                <div class="w-16 h-16 mx-auto rounded-full bg-brand-primary/10 flex items-center justify-center mb-3">
+                    <i class="fas fa-user-md text-brand-primary text-xl"></i>
+                </div>
+                <h3 class="font-semibold text-textc-main">{{ user.username }}</h3>
+                <p class="text-textc-muted text-sm">{{ doctor.specialization }}</p>
+                <p class="text-xs text-textc-muted/70">{{ doctor.experience_years }} years experience</p>
+
+                <div class="mt-4 space-y-2">
+                    <a href="#"
+                        class="block px-4 py-2 rounded-xl bg-brand-accent text-brand-primary hover:bg-brand-accent/80 transition text-sm">
+                        <i class="fas fa-user mr-1"></i> Edit Profile
+                    </a>
+                    <a href="{% url 'manage_availability' %}"
+                        class="block px-4 py-2 rounded-xl bg-brand-accent text-brand-primary hover:bg-brand-accent/80 transition text-sm">
+                        <i class="fas fa-clock mr-1"></i> Availability
+                    </a>
+                    <a href="{% url 'appointment_calendar' %}"
+                        class="block px-4 py-2 rounded-xl bg-brand-accent text-brand-primary hover:bg-brand-accent/80 transition text-sm">
+                        <i class="fas fa-calendar-alt mr-1"></i> Calendar
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

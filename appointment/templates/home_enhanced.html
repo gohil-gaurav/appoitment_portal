@@ -1,0 +1,224 @@
+{% extends 'base_enhanced.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+<!-- ================= HERO ================= -->
+<section class="relative mb-24 overflow-hidden">
+
+<div class="absolute inset-0 pointer-events-none">
+    <div class="absolute top-20 left-10 w-40 h-40 bg-minimal-accent/10 rounded-full blur-3xl animate-float"></div>
+    <div class="absolute bottom-20 right-20 w-56 h-56 bg-subtle-blue/10 rounded-full blur-3xl animate-float" style="animation-delay:2s"></div>
+</div>
+
+<div class="grid md:grid-cols-2 gap-14 items-center relative z-10">
+
+<!-- Text -->
+<div data-aos="fade-right" class="space-y-8">
+    <h1 class="text-5xl md:text-6xl font-light leading-tight">
+        <span class="block text-minimal-primary">Book Doctor</span>
+        <span class="block text-minimal-accent">Appointments</span>
+        <span class="block text-minimal-secondary">Effortlessly</span>
+    </h1>
+
+    <p class="text-minimal-secondary text-lg max-w-xl leading-relaxed">
+        A clean and modern healthcare platform to find trusted doctors,
+        check availability and manage appointments — all in one place.
+    </p>
+
+    <div class="flex flex-wrap gap-4">
+        <a href="/doctors/"
+           class="px-8 py-4 rounded-xl bg-minimal-accent text-white font-medium hover:shadow-xl hover:-translate-y-1 transition">
+            <i class="fas fa-search mr-2"></i> Find Doctors
+        </a>
+
+        {# ================================================================== #}
+        {# AUTHENTICATION-BASED ACTIONS: Show signup for guests, dashboard for users #}
+        {# ================================================================== #}
+        {% if not user.is_authenticated %}
+            {# Guest users: Show signup option #}
+            <a href="{% url 'signup_patient' %}"
+               class="px-8 py-4 rounded-xl border border-minimal-secondary/30 text-minimal-secondary hover:border-minimal-accent hover:text-minimal-accent transition">
+                <i class="fas fa-user-plus mr-2"></i> Sign Up
+            </a>
+        {% else %}
+            {# Authenticated users: Redirect to appropriate dashboard based on role #}
+            <a href="{% if user.profile.role == 'patient' %}{% url 'patient_dashboard' %}{% else %}{% url 'doctor_dashboard' %}{% endif %}"
+               class="px-8 py-4 rounded-xl bg-minimal-gold text-white font-medium hover:shadow-xl transition">
+                <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="flex items-center gap-6 text-sm text-minimal-secondary">
+        <span>✔ 24/7 Access</span>
+        <span>✔ Trusted Doctors</span>
+        <span>✔ Secure Platform</span>
+    </div>
+</div>
+
+<!-- Visual -->
+<div data-aos="fade-left" class="relative perspective-1000">
+    <div class="relative w-80 h-80 mx-auto card-3d">
+        <div class="absolute inset-0 flex items-center justify-center">
+            <div class="w-32 h-32 rounded-full bg-minimal-accent/10 border border-minimal-accent/20 flex items-center justify-center">
+                <i class="fas fa-user-md text-6xl text-minimal-accent"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+</section>
+
+<!-- ================= STATS ================= -->
+<section class="mb-24" data-aos="fade-up">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+<div class="glass-enhanced rounded-2xl p-8 text-center card-3d">
+    <h3 class="text-4xl font-bold text-minimal-accent counter" data-target="{{ total_doctors|default:150 }}">0</h3>
+    <p class="text-minimal-secondary mt-2">Active Doctors</p>
+</div>
+
+<div class="glass-enhanced rounded-2xl p-8 text-center card-3d">
+    <h3 class="text-4xl font-bold text-minimal-gold counter" data-target="{{ total_appointments|default:2500 }}">0</h3>
+    <p class="text-minimal-secondary mt-2">Appointments Booked</p>
+</div>
+
+<div class="glass-enhanced rounded-2xl p-8 text-center card-3d">
+    <h3 class="text-4xl font-bold text-subtle-green counter" data-target="{{ upcoming_appointments|default:120 }}">0</h3>
+    <p class="text-minimal-secondary mt-2">Upcoming Appointments</p>
+</div>
+
+</div>
+</section>
+
+<!-- ================= FEATURED DOCTORS ================= -->
+{# Display featured doctors if available #}
+{% if featured_doctors %}
+<section class="mb-24" data-aos="fade-up">
+    <h2 class="text-4xl font-bold text-center mb-12 text-minimal-primary">
+        Featured Specialists
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {% for doctor in featured_doctors %}
+            <div class="glass-enhanced rounded-2xl p-6 text-center card-3d">
+                <div class="w-24 h-24 rounded-full bg-minimal-accent/10 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-user-md text-4xl text-minimal-accent"></i>
+                </div>
+
+                <h3 class="text-xl font-semibold text-white">{{ doctor.name }}</h3>
+                <p class="text-minimal-accent">{{ doctor.specialization }}</p>
+
+                {# ================================================================== #}
+                {# OPTIONAL DOCTOR FIELDS: Only display if data exists #}
+                {# ================================================================== #}
+                {# Display experience if available (years of practice) #}
+                {% if doctor.experience_years %}
+                    <p class="text-sm text-minimal-secondary mt-1">
+                        {{ doctor.experience_years }} years experience
+                    </p>
+                {% endif %}
+
+                {# Display consultation fee if available #}
+                {% if doctor.consultation_fee %}
+                    <p class="text-sm text-minimal-gold font-semibold mt-2">
+                        Fee: ${{ doctor.consultation_fee }}
+                    </p>
+                {% endif %}
+
+                <a href="{% url 'book' doctor.id %}"
+                   class="mt-5 inline-block w-full py-3 rounded-xl bg-minimal-accent text-white font-medium hover:shadow-lg transition">
+                    Book Appointment
+                </a>
+            </div>
+        {% empty %}
+            {# Show message when no doctors in loop (featured_doctors list is empty) #}
+            <p class="text-center text-minimal-secondary col-span-full py-8">
+                No doctors available at this time.
+            </p>
+        {% endfor %}
+    </div>
+
+    <div class="text-center mt-10">
+        <a href="{% url 'doctors' %}" class="text-minimal-accent font-medium hover:underline">
+            View All Doctors →
+        </a>
+    </div>
+</section>
+{% else %}
+    {# Show fallback when featured_doctors variable is not provided or is None #}
+    <section class="mb-24 text-center">
+        <p class="text-minimal-secondary py-8">Featured specialists are not available at the moment.</p>
+    </section>
+{% endif %}
+
+<!-- ================= FEATURES ================= -->
+<section class="mb-24" data-aos="fade-up">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+{% for feature in "1234"|make_list %}
+<div class="glass-enhanced rounded-2xl p-6 text-center card-3d">
+    <i class="fas fa-check-circle text-3xl text-minimal-accent mb-3"></i>
+    <h3 class="font-semibold mb-2">Modern Healthcare</h3>
+    <p class="text-sm text-minimal-secondary">
+        Fast, secure and reliable appointment booking system.
+    </p>
+</div>
+{% endfor %}
+
+</div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="text-center mb-10" data-aos="fade-up">
+<div class="glass-enhanced rounded-3xl p-12">
+
+<h2 class="text-4xl font-bold mb-4 text-white">
+Ready to get started?
+</h2>
+
+<p class="text-minimal-secondary max-w-2xl mx-auto mb-8">
+Join thousands of users managing healthcare effortlessly.
+</p>
+
+{% if not user.is_authenticated %}
+<div class="flex justify-center gap-4">
+    {# CTA for guest users: Show signup options for both roles #}
+    <a href="{% url 'signup_patient' %}"
+       class="px-10 py-4 rounded-xl bg-minimal-accent text-white font-semibold hover:shadow-xl transition">
+        Join as Patient
+    </a>
+    <a href="{% url 'signup_doctor' %}"
+       class="px-10 py-4 rounded-xl bg-subtle-green text-white font-semibold hover:shadow-xl transition">
+        Join as Doctor
+    </a>
+</div>
+{% else %}
+{# CTA for authenticated users: Go to their dashboard #}
+<a href="{% if user.profile.role == 'patient' %}{% url 'patient_dashboard' %}{% else %}{% url 'doctor_dashboard' %}{% endif %}"
+   class="px-10 py-4 rounded-xl bg-minimal-gold text-white font-semibold hover:shadow-xl transition">
+    Go to Dashboard
+</a>
+{% endif %}
+
+</div>
+</section>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+document.querySelectorAll('.counter').forEach(el=>{
+const target=+el.dataset.target;
+let c=0;
+const i=setInterval(()=>{
+c+=Math.ceil(target/60);
+el.textContent=Math.min(c,target).toLocaleString();
+if(c>=target)clearInterval(i);
+},20);
+});
+});
+</script>
+{% endblock %}

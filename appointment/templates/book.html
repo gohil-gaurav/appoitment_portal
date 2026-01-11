@@ -1,0 +1,311 @@
+{% extends 'base_enhanced.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4">
+
+  <!-- Header -->
+  <div class="mb-10 text-center">
+    <div class="inline-flex items-center justify-center w-16 h-16 bg-brand-primary/10 rounded-full mb-4">
+      <i class="fas fa-calendar-plus text-brand-primary text-2xl"></i>
+    </div>
+    <h1 class="text-4xl font-bold text-textc-main mb-3">Book Appointment</h1>
+    <p class="text-textc-muted text-lg max-w-2xl mx-auto">
+      Schedule your appointment with our healthcare professional
+    </p>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+    <!-- Left: Doctor Info -->
+    <div class="space-y-6">
+      <!-- Doctor Card -->
+      <div class="card-style p-6">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-user-md text-brand-primary text-2xl"></i>
+          </div>
+          <h3 class="text-xl font-bold text-textc-main">{{ doctor.name }}</h3>
+          <p class="text-textc-muted">{{ doctor.specialization }}</p>
+
+          {% if doctor.experience_years %}
+          <p class="text-textc-muted text-sm mt-2">
+            {{ doctor.experience_years }} years experience
+          </p>
+          {% endif %}
+
+          {% if doctor.consultation_fee and doctor.consultation_fee > 0 %}
+          <div class="mt-4 p-3 bg-brand-success/10 rounded-lg">
+            <p class="text-brand-success font-semibold">
+              <i class="fas fa-dollar-sign mr-1"></i>
+              ${{ doctor.consultation_fee }}
+            </p>
+            <p class="text-sm text-brand-success/80">Consultation Fee</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Tips -->
+      <div class="card-style p-6">
+        <h4 class="text-lg font-semibold text-textc-main mb-4">
+          <i class="fas fa-lightbulb text-brand-warning mr-2"></i>
+          Booking Tips
+        </h4>
+        <ul class="space-y-3 text-sm text-textc-muted">
+          <li class="flex items-start">
+            <i class="fas fa-check-circle text-brand-success mr-2 mt-0.5"></i>
+            <span>Choose a date at least 24 hours in advance</span>
+          </li>
+          <li class="flex items-start">
+            <i class="fas fa-check-circle text-brand-success mr-2 mt-0.5"></i>
+            <span>Available slots are shown in real-time</span>
+          </li>
+          <li class="flex items-start">
+            <i class="fas fa-check-circle text-brand-success mr-2 mt-0.5"></i>
+            <span>You can reschedule up to 24 hours before</span>
+          </li>
+          <li class="flex items-start">
+            <i class="fas fa-check-circle text-brand-success mr-2 mt-0.5"></i>
+            <span>Confirmation will be sent via email</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Right: Booking Form -->
+    <div class="lg:col-span-2">
+      <div class="card-style p-8">
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="mb-6">
+          {% for message in messages %}
+          <div class="p-4 rounded-lg text-sm mb-3
+                {% if message.tags == 'error' %}
+                  bg-brand-danger/10 text-brand-danger border border-brand-danger/30
+                {% else %}
+                  bg-brand-success/10 text-brand-success border border-brand-success/30
+                {% endif %}
+              ">
+            <i
+              class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% else %}check-circle{% endif %} mr-2"></i>
+            {{ message }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" class="space-y-6" id="bookingForm">
+          {% csrf_token %}
+
+          <!-- Date Selection -->
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-3">
+              <i class="fas fa-calendar text-brand-primary mr-2"></i>
+              Select Date *
+            </label>
+            <input type="date" name="date" id="appointmentDate" min="{% now 'Y-m-d' %}" required
+              onchange="loadAvailableSlots()" class="w-full px-4 py-3 bg-brand-surface border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition">
+            <p class="text-xs text-textc-muted mt-1">
+              <i class="fas fa-info-circle mr-1"></i>
+              Choose a date to see available time slots
+            </p>
+          </div>
+
+          <!-- Time Slots -->
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-3">
+              <i class="fas fa-clock text-brand-primary mr-2"></i>
+              Available Time Slots *
+            </label>
+            <div id="timeSlotsContainer">
+              <div class="p-4 bg-brand-surface rounded-lg border border-brand-accent text-center text-textc-muted">
+                <i class="fas fa-calendar-times mr-2"></i>
+                Please select a date first to view available slots
+              </div>
+            </div>
+            <input type="hidden" name="time" id="selectedTime" required>
+            <p class="text-xs text-textc-muted mt-1">
+              <i class="fas fa-lightbulb mr-1"></i>
+              Click on a time slot to select it
+            </p>
+          </div>
+
+          <!-- Reason -->
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-3">
+              <i class="fas fa-stethoscope text-brand-primary mr-2"></i>
+              Reason for Visit (Optional)
+            </label>
+            <textarea name="reason" rows="4" class="w-full px-4 py-3 bg-brand-surface border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition resize-none"
+              placeholder="Please describe your symptoms or reason for the appointment..."></textarea>
+            <p class="text-xs text-textc-muted mt-1">
+              <i class="fas fa-info-circle mr-1"></i>
+              Help the doctor prepare for your visit
+            </p>
+          </div>
+
+          <!-- Priority -->
+          <div>
+            <label class="block text-sm font-medium text-textc-muted mb-3">
+              <i class="fas fa-exclamation-triangle text-brand-primary mr-2"></i>
+              Priority Level
+            </label>
+            <select name="priority" class="w-full px-4 py-3 bg-brand-surface border border-brand-accent rounded-lg text-textc-main
+                     focus:outline-none focus:border-brand-primary transition">
+              <option value="normal">Normal</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex justify-end gap-4 pt-6 border-t border-brand-accent">
+            <a href="{% url 'doctors' %}" class="px-6 py-3 bg-brand-accent text-brand-primary rounded-lg font-semibold 
+                     hover:bg-brand-accent/80 transition">
+              <i class="fas fa-arrow-left mr-2"></i>
+              Back to Doctors
+            </a>
+            <button type="submit" id="submitBtn" disabled class="px-8 py-3 btn-primary font-bold rounded-lg transition-all duration-200
+                     disabled:opacity-50 disabled:cursor-not-allowed">
+              <i class="fas fa-calendar-check mr-2"></i>
+              Confirm Appointment
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 bg-black/30 hidden z-50 flex items-center justify-center">
+  <div class="card-style p-6 text-center">
+    <div class="animate-spin h-10 w-10 border-4 border-brand-primary border-t-transparent rounded-full mx-auto mb-3">
+    </div>
+    <p class="text-textc-main text-sm">Loading available slots...</p>
+  </div>
+</div>
+
+<script>
+  let doctorId = {{ doctor.id }};
+
+  async function loadAvailableSlots() {
+    const dateInput = document.getElementById('appointmentDate');
+    const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+    const selectedTimeInput = document.getElementById('selectedTime');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Clear previous selection
+    selectedTimeInput.value = '';
+    submitBtn.disabled = true;
+
+    if (!dateInput.value) {
+      timeSlotsContainer.innerHTML = `
+            <div class="p-4 bg-brand-surface rounded-lg border border-brand-accent text-center text-textc-muted">
+                <i class="fas fa-calendar-times mr-2"></i>
+                Please select a date first to view available slots
+            </div>
+        `;
+      return;
+    }
+
+    // Show loading
+    showLoading(true);
+
+    try {
+      const response = await fetch(`/api/appointments/available-slots/?doctor_id=${doctorId}&date=${dateInput.value}`);
+      const data = await response.json();
+
+      if (data.slots && data.slots.length > 0) {
+        // Generate time slots grid
+        const slotsGrid = document.createElement('div');
+        slotsGrid.className = 'grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3';
+
+        data.slots.forEach(slot => {
+          const slotButton = document.createElement('button');
+          slotButton.type = 'button';
+          slotButton.className = 'time-slot-btn px-4 py-3 bg-brand-surface border border-brand-accent rounded-lg text-textc-main hover:bg-brand-primary/10 hover:border-brand-primary transition-all duration-200 cursor-pointer';
+          slotButton.textContent = slot;
+          slotButton.dataset.time = slot;
+          slotButton.onclick = () => selectTimeSlot(slot, slotButton);
+
+          slotsGrid.appendChild(slotButton);
+        });
+
+        timeSlotsContainer.innerHTML = '';
+        timeSlotsContainer.appendChild(slotsGrid);
+      } else {
+        timeSlotsContainer.innerHTML = `
+                <div class="p-6 bg-brand-surface rounded-lg border border-brand-accent text-center">
+                    <i class="fas fa-calendar-times text-textc-muted text-2xl mb-3"></i>
+                    <p class="text-textc-muted font-medium">No available slots</p>
+                    <p class="text-sm text-textc-muted/70 mt-1">Try selecting a different date</p>
+                </div>
+            `;
+      }
+    } catch (error) {
+      console.error('Error loading slots:', error);
+      timeSlotsContainer.innerHTML = `
+            <div class="p-4 bg-brand-danger/10 border border-brand-danger/30 rounded-lg text-center">
+                <i class="fas fa-exclamation-triangle text-brand-danger mr-2"></i>
+                <span class="text-brand-danger">Error loading available slots. Please try again.</span>
+            </div>
+        `;
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  function selectTimeSlot(time, buttonElement) {
+    // Remove previous selection
+    document.querySelectorAll('.time-slot-btn').forEach(btn => {
+      btn.classList.remove('bg-brand-primary/20', 'border-brand-primary');
+      btn.classList.add('hover:bg-brand-primary/10', 'hover:border-brand-primary');
+    });
+
+    // Highlight selected slot
+    buttonElement.classList.remove('hover:bg-brand-primary/10', 'hover:border-brand-primary');
+    buttonElement.classList.add('bg-brand-primary/20', 'border-brand-primary');
+
+    // Update hidden input and enable submit
+    document.getElementById('selectedTime').value = time;
+    document.getElementById('submitBtn').disabled = false;
+  }
+
+  function showLoading(show) {
+    const overlay = document.getElementById('loadingOverlay');
+    if (show) {
+      overlay.classList.remove('hidden');
+    } else {
+      overlay.classList.add('hidden');
+    }
+  }
+
+  // Form submission enhancement
+  document.getElementById('bookingForm')?.addEventListener('submit', function (e) {
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (!document.getElementById('selectedTime').value) {
+      e.preventDefault();
+      alert('Please select a time slot before submitting.');
+      return;
+    }
+
+    // Add loading state
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Booking Appointment...';
+    submitBtn.disabled = true;
+  });
+
+  // Set minimum date to today
+  document.addEventListener('DOMContentLoaded', function () {
+    const dateInput = document.getElementById('appointmentDate');
+    if (dateInput && !dateInput.value) {
+      const today = new Date().toISOString().split('T')[0];
+      dateInput.min = today;
+    }
+  });
+</script>
+{% endblock %}
