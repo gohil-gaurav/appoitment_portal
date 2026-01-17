@@ -95,8 +95,7 @@
                 {# scheduled: Appointment has date/time assigned #}
                 {# Completed and cancelled appointments cannot be cancelled #}
                 {# ================================================================== #}
-                {% if appointment.status == "pending" or appointment.status == "approved" or appointment.status ==
-                "scheduled" %}
+                {% if appointment.status == "pending" or appointment.status == "approved" or appointment.status == "scheduled" %}
                 <button onclick="cancelAppointment({{ appointment.id }})"
                   class="cancel-btn px-3 py-1.5 bg-brand-danger/80 hover:bg-brand-danger text-white rounded-lg text-sm transition-all duration-200"
                   data-appointment-id="{{ appointment.id }}">
@@ -180,8 +179,6 @@
   </div>
 </div>
 
-{% endblock %}
-
 <script>
   async function cancelAppointment(appointmentId) {
     // Show confirmation dialog
@@ -203,13 +200,11 @@
       const response = await fetch(`/api/appointments/${appointmentId}/update-status/`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
           'X-CSRFToken': getCookie('csrftoken'),
           'X-Requested-With': 'XMLHttpRequest'
         },
-        body: JSON.stringify({
-          status: 'cancelled'
-        })
+        body: 'status=cancelled'
       });
 
       const data = await response.json();
@@ -302,3 +297,5 @@
     return cookieValue;
   }
 </script>
+
+{% endblock %}

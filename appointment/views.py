@@ -12,10 +12,31 @@ from django.utils.encoding import force_bytes, force_str
 from django.urls import reverse
 from django.core.mail import send_mail
 from django.conf import settings
+from django.views.decorators.csrf import ensure_csrf_cookie
 from datetime import datetime, timedelta
 import json
 
 from .models import Doctor, Appointment, Profile, Notification, StatusHistory, DoctorSchedule, PatientNotes, Review, AppointmentReminder, TimeBlock
+
+
+# ---------------- HELPER FUNCTIONS ----------------
+
+def get_doctor_for_user(user):
+    """
+    Get the Doctor instance linked to a user.
+    Uses the new user ForeignKey relationship, with fallback to name matching for legacy data.
+    """
+    # First try the proper user relationship
+    try:
+        return Doctor.objects.get(user=user)
+    except Doctor.DoesNotExist:
+        pass
+    
+    # Fallback to name matching for legacy data
+    try:
+        return Doctor.objects.get(name=user.username)
+    except Doctor.DoesNotExist:
+        return None
 
 
 # ---------------- HOME ----------------
@@ -172,6 +193,7 @@ def book_appointment(request, doctor_id):
 
 # ---------------- DASHBOARD VIEWS ----------------
 @login_required
+@ensure_csrf_cookie
 def patient_dashboard(request):
     """Patient dashboard with appointment history and management"""
     try:
@@ -197,10 +219,10 @@ def patient_dashboard(request):
         user=request.user
     ).order_by('-created_at')[:10]
 
-    # Get upcoming appointments
+    # Get upcoming appointments (include pending since they are awaiting approval)
     upcoming_appointments = appointments.filter(
         appointment_date__gte=timezone.now().date(),
-        status__in=['approved', 'scheduled']
+        status__in=['pending', 'approved', 'scheduled']
     )
 
     # Statistics - pass as list for template
@@ -231,6 +253,7 @@ def patient_dashboard(request):
 
 
 @login_required
+@ensure_csrf_cookie
 def doctor_dashboard(request):
     """Doctor dashboard with appointment management"""
     try:
@@ -241,8 +264,12 @@ def doctor_dashboard(request):
         messages.error(request, "User profile not found.")
         return redirect('home')
 
-    # Get doctor's appointments
-    doctor = get_object_or_404(Doctor, name=request.user.username)
+    # Get doctor's appointments using proper user relationship
+    doctor = get_doctor_for_user(request.user)
+    if not doctor:
+        messages.error(request, "Doctor profile not found. Please contact support.")
+        return redirect('home')
+    
     appointments = Appointment.objects.filter(
         doctor=doctor
     ).order_by('-created_at')
@@ -314,8 +341,8 @@ def update_appointment_status(request, appointment_id):
                 return JsonResponse({'error': 'Patients can only cancel appointments'}, status=403)
         elif profile.role == 'doctor':
             # Doctors can update status for their appointments
-            doctor = Doctor.objects.get(name=request.user.username)
-            if appointment.doctor != doctor:
+            doctor = get_doctor_for_user(request.user)
+            if not doctor or appointment.doctor != doctor:
                 return JsonResponse({'error': 'Permission denied'}, status=403)
         else:
             return JsonResponse({'error': 'Permission denied'}, status=403)
@@ -492,8 +519,8 @@ def get_appointment_details(request, appointment_id):
         if profile.role == 'patient' and appointment.user != request.user:
             return JsonResponse({'error': 'Permission denied'}, status=403)
         elif profile.role == 'doctor':
-            doctor = Doctor.objects.get(name=request.user.username)
-            if appointment.doctor != doctor:
+            doctor = get_doctor_for_user(request.user)
+            if not doctor or appointment.doctor != doctor:
                 return JsonResponse({'error': 'Permission denied'}, status=403)
         
         # Prepare response data
@@ -548,7 +575,9 @@ def search_appointments(request):
         if profile.role == 'patient':
             appointments = Appointment.objects.filter(user=request.user)
         elif profile.role == 'doctor':
-            doctor = Doctor.objects.get(name=request.user.username)
+            doctor = get_doctor_for_user(request.user)
+            if not doctor:
+                return JsonResponse({'error': 'Doctor profile not found'}, status=404)
             appointments = Appointment.objects.filter(doctor=doctor)
         else:
             appointments = Appointment.objects.all()
@@ -614,63 +643,62 @@ def bulk_update_appointments(request):
     if new_status not in dict(Appointment.STATUS_CHOICES):
         return JsonResponse({'error': 'Invalid status'}, status=400)
 
-    try:
-        doctor = Doctor.objects.get(name=request.user.username)
-        updated_count = 0
-
-        for appointment_id in appointment_ids:
-            try:
-                appointment = Appointment.objects.get(
-                    id=appointment_id,
-                    doctor=doctor
-                )
-                
-                old_status = appointment.status
-                appointment.status = new_status
-                appointment.updated_at = timezone.now()
-
-                # Set additional timestamps
-                if new_status == 'approved':
-                    appointment.confirmed_at = timezone.now()
-                elif new_status == 'completed':
-                    appointment.completed_at = timezone.now()
-                elif new_status == 'cancelled':
-                    appointment.cancellation_reason = reason
-
-                appointment.save()
-
-                # Create history record
-                StatusHistory.objects.create(
-                    appointment=appointment,
-                    old_status=old_status,
-                    new_status=new_status,
-                    changed_by=request.user,
-                    reason=reason or f'Bulk update: {old_status} → {new_status}'
-                )
-
-                # Create notification
-                if appointment.user:
-                    Notification.objects.create(
-                        user=appointment.user,
-                        appointment=appointment,
-                        type='status_changed',
-                        title='Appointment Status Updated',
-                        message=f'Your appointment has been {new_status} (bulk update).'
-                    )
-
-                updated_count += 1
-
-            except Appointment.DoesNotExist:
-                continue
-
-        return JsonResponse({
-            'success': True,
-            'updated_count': updated_count,
-            'message': f'Successfully updated {updated_count} appointments'
-        })
-
-    except Doctor.DoesNotExist:
+    doctor = get_doctor_for_user(request.user)
+    if not doctor:
         return JsonResponse({'error': 'Doctor profile not found'}, status=404)
+    
+    updated_count = 0
+
+    for appointment_id in appointment_ids:
+        try:
+            appointment = Appointment.objects.get(
+                id=appointment_id,
+                doctor=doctor
+            )
+            
+            old_status = appointment.status
+            appointment.status = new_status
+            appointment.updated_at = timezone.now()
+
+            # Set additional timestamps
+            if new_status == 'approved':
+                appointment.confirmed_at = timezone.now()
+            elif new_status == 'completed':
+                appointment.completed_at = timezone.now()
+            elif new_status == 'cancelled':
+                appointment.cancellation_reason = reason
+
+            appointment.save()
+
+            # Create history record
+            StatusHistory.objects.create(
+                appointment=appointment,
+                old_status=old_status,
+                new_status=new_status,
+                changed_by=request.user,
+                reason=reason or f'Bulk update: {old_status} → {new_status}'
+            )
+
+            # Create notification
+            if appointment.user:
+                Notification.objects.create(
+                    user=appointment.user,
+                    appointment=appointment,
+                    type='status_changed',
+                    title='Appointment Status Updated',
+                    message=f'Your appointment has been {new_status} (bulk update).'
+                )
+
+            updated_count += 1
+
+        except Appointment.DoesNotExist:
+            continue
+
+    return JsonResponse({
+        'success': True,
+        'updated_count': updated_count,
+        'message': f'Successfully updated {updated_count} appointments'
+    })
 
 
 # ---------------- EXPORT FUNCTIONALITY ----------------
@@ -687,7 +715,9 @@ def export_appointments(request):
         if profile.role == 'patient':
             appointments = Appointment.objects.filter(user=request.user)
         elif profile.role == 'doctor':
-            doctor = Doctor.objects.get(name=request.user.username)
+            doctor = get_doctor_for_user(request.user)
+            if not doctor:
+                return JsonResponse({'error': 'Doctor profile not found'}, status=404)
             appointments = Appointment.objects.filter(doctor=doctor)
         else:
             appointments = Appointment.objects.all()
@@ -793,7 +823,9 @@ def analytics_dashboard(request):
 
     # Base queryset
     if profile.role == 'doctor':
-        doctor = Doctor.objects.get(name=request.user.username)
+        doctor = get_doctor_for_user(request.user)
+        if not doctor:
+            return JsonResponse({'error': 'Doctor profile not found'}, status=404)
         appointments = Appointment.objects.filter(
             doctor=doctor,
             created_at__date__gte=start_date,
@@ -914,31 +946,70 @@ def send_activation_email(request, user):
 
 
 def get_available_time_slots(doctor, date):
-    """Get available time slots for a doctor on a specific date"""
+    """Get available time slots for a doctor on a specific date using their actual schedule"""
     if not date:
         return []
     
-    # This is a simplified version - in production you'd want more sophisticated logic
+    from datetime import time as dt_time
+    
+    # Parse the date if it's a string
+    if isinstance(date, str):
+        try:
+            date_obj = datetime.strptime(date, '%Y-%m-%d').date()
+        except ValueError:
+            return []
+    else:
+        date_obj = date
+    
+    # Get the day of week for the requested date
+    day_names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    day_of_week = day_names[date_obj.weekday()]
+    
+    # Try to get doctor's schedule for this day
+    try:
+        schedule = DoctorSchedule.objects.get(doctor=doctor, day_of_week=day_of_week, is_available=True)
+        start_time = schedule.start_time
+        end_time = schedule.end_time
+        slot_duration = schedule.slot_duration  # in minutes
+    except DoctorSchedule.DoesNotExist:
+        # Fall back to doctor's available_from/available_to or defaults
+        start_time = doctor.available_from or dt_time(9, 0)
+        end_time = doctor.available_to or dt_time(17, 0)
+        slot_duration = 30  # default 30 minutes
+    
+    # Check for time blocks (vacations, etc.)
+    time_blocks = TimeBlock.objects.filter(
+        doctor=doctor,
+        start_datetime__date__lte=date_obj,
+        end_datetime__date__gte=date_obj
+    )
+    
+    # Get already booked slots
     booked_slots = Appointment.objects.filter(
         doctor=doctor,
-        appointment_date=date,
+        appointment_date=date_obj,
         status__in=['pending', 'approved', 'scheduled']
     ).values_list('appointment_time', flat=True)
     
-    # Generate available slots (9 AM to 5 PM, 1-hour slots)
+    # Generate available slots
     available_slots = []
-    from datetime import time
-    current_time = time(9, 0)  # 9 AM
-    end_time = time(17, 0)     # 5 PM
+    current_dt = datetime.combine(date_obj, start_time)
+    end_dt = datetime.combine(date_obj, end_time)
     
-    while current_time < end_time:
-        if current_time not in booked_slots:
-            available_slots.append(current_time.strftime('%H:%M'))
-        # Add 1 hour
-        from datetime import datetime, timedelta
-        current_dt = datetime.combine(datetime.today(), current_time)
-        current_dt += timedelta(hours=1)
+    while current_dt + timedelta(minutes=slot_duration) <= end_dt:
         current_time = current_dt.time()
+        is_blocked = False
+        
+        # Check if slot is in a time block
+        for block in time_blocks:
+            if block.start_datetime <= current_dt < block.end_datetime:
+                is_blocked = True
+                break
+        
+        if not is_blocked and current_time not in booked_slots:
+            available_slots.append(current_time.strftime('%H:%M'))
+        
+        current_dt += timedelta(minutes=slot_duration)
     
     return available_slots
 
@@ -1072,7 +1143,9 @@ def signup_doctor(request):
                 password=password,
                 email=email
             )
-            user.is_active = False
+            # For development: set user as active immediately
+            # In production, set to False and require email verification
+            user.is_active = True  # Changed from False for easier development
             user.save()
 
             # Create profile
@@ -1080,11 +1153,12 @@ def signup_doctor(request):
             profile.role = 'doctor'
             profile.specialization = specialization
             profile.phone = phone
-            profile.email_verified = False
+            profile.email_verified = True  # Mark as verified for development
             profile.save()
 
-            # Create doctor record
+            # Create doctor record with user link
             doctor = Doctor.objects.create(
+                user=user,  # Link to user account
                 name=username,
                 specialization=specialization,
                 email=email,
@@ -1096,7 +1170,7 @@ def signup_doctor(request):
                 license_number=license_number,
                 email_notifications=email_notifications,
                 sms_notifications=sms_notifications,
-                is_active=False  # Requires verification
+                is_active=True  # Changed from False for easier development
             )
 
             # Create default schedule for weekdays
@@ -1119,14 +1193,15 @@ def signup_doctor(request):
                     slot_duration=30
                 )
 
-            send_activation_email(request, user)
+            # Skip activation email for development (account is already active)
+            # send_activation_email(request, user)
 
             messages.success(
                 request,
-                "Doctor account created. Check your email to verify and activate your login."
+                "Doctor account created successfully! You can now login."
             )
 
-            # Redirect to login so they can sign in after verification
+            # Redirect to login so they can sign in
             return redirect('login')
 
         except Exception as e:
@@ -1340,7 +1415,10 @@ def appointment_calendar(request):
         return redirect('home')
     
     if profile.role == 'doctor':
-        doctor = get_object_or_404(Doctor, name=request.user.username)
+        doctor = get_doctor_for_user(request.user)
+        if not doctor:
+            messages.error(request, "Doctor profile not found.")
+            return redirect('home')
         appointments = Appointment.objects.filter(doctor=doctor)
     elif profile.role == 'patient':
         appointments = Appointment.objects.filter(user=request.user)
@@ -1367,7 +1445,9 @@ def calendar_events(request):
         return JsonResponse({'error': 'Profile not found'}, status=404)
     
     if profile.role == 'doctor':
-        doctor = get_object_or_404(Doctor, name=request.user.username)
+        doctor = get_doctor_for_user(request.user)
+        if not doctor:
+            return JsonResponse({'error': 'Doctor profile not found'}, status=404)
         appointments = Appointment.objects.filter(doctor=doctor)
     elif profile.role == 'patient':
         appointments = Appointment.objects.filter(user=request.user)
@@ -1418,7 +1498,10 @@ def manage_availability(request):
         messages.error(request, "User profile not found.")
         return redirect('home')
     
-    doctor = get_object_or_404(Doctor, name=request.user.username)
+    doctor = get_doctor_for_user(request.user)
+    if not doctor:
+        messages.error(request, "Doctor profile not found.")
+        return redirect('home')
     
     # Get or create schedule for each day
     schedules = {}
@@ -1604,17 +1687,20 @@ def manage_reminders(request):
     
     # Get upcoming appointments
     if profile.role == 'doctor':
-        doctor = get_object_or_404(Doctor, name=request.user.username)
+        doctor = get_doctor_for_user(request.user)
+        if not doctor:
+            messages.error(request, "Doctor profile not found.")
+            return redirect('home')
         appointments = Appointment.objects.filter(
             doctor=doctor,
             appointment_date__gte=timezone.now().date(),
-            status__in=['approved', 'scheduled']
+            status__in=['pending', 'approved', 'scheduled']
         ).order_by('appointment_date', 'appointment_time')
     else:
         appointments = Appointment.objects.filter(
             user=request.user,
             appointment_date__gte=timezone.now().date(),
-            status__in=['approved', 'scheduled']
+            status__in=['pending', 'approved', 'scheduled']
         ).order_by('appointment_date', 'appointment_time')
     
     # Get all reminders for these appointments

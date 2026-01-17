@@ -82,6 +82,7 @@
 
                         {% for appointment in appointments %}
                         <div class="appointment-item bg-brand-surface rounded-xl p-4 border border-brand-accent transition-all hover:-translate-y-0.5"
+                            data-id="{{ appointment.id }}"
                             data-status="{{ appointment.status }}"
                             data-search="{{ appointment.patient_name|lower }} {{ appointment.reason|lower }}">
 
@@ -239,8 +240,6 @@
     </div>
 </div>
 
-{% endblock %}
-
 <script>
   // Initialize filter and search on page load
   document.addEventListener('DOMContentLoaded', function() {
@@ -322,8 +321,8 @@
 
     // Update appointment UI after status change
   function updateAppointmentUI(appointmentId, newStatus) {
-    // Find appointment card by data attribute
-    const card = document.querySelector(`.appointment-item[data-status="${newStatus}"]`);
+    // Find appointment card by appointment ID
+    const card = document.querySelector(`.appointment-item[data-id="${appointmentId}"]`);
     if (!card) return;
 
     // Update status badge - find the span that contains status text
@@ -568,3 +567,5 @@
     return cookieValue;
   }
 </script>
+
+{% endblock %}
