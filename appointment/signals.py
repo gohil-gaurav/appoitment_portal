@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-from django.contrib import messages
-from .models import Profile, Appointment, Notification, StatusHistory
+from django.conf import settings
+from .models import Profile, Appointment, Notification, StatusHistory, Doctor
 
 
 @receiver(post_save, sender=User)
@@ -23,11 +23,8 @@ def create_or_update_profile(sender, instance, created, **kwargs):
 def appointment_created(sender, instance, created, **kwargs):
     """Send notification when a new appointment is created"""
     if created:
-        doctor_user = None
-        try:
-            doctor_user = User.objects.filter(username=instance.doctor.name).first()
-        except:
-            pass
+        # Use the new Doctor.user relationship instead of name matching
+        doctor_user = instance.doctor.user if instance.doctor else None
         
         if doctor_user:
             Notification.objects.create(
@@ -46,30 +43,16 @@ def appointment_created(sender, instance, created, **kwargs):
 
 @receiver(pre_save, sender=Appointment)
 def appointment_status_changed(sender, instance, **kwargs):
-    """Track status changes and send notifications"""
+    """
+    Send email notifications on status change.
+    NOTE: StatusHistory and Notification creation is handled in views.py 
+    to avoid duplicates. This signal only handles email sending.
+    """
     if instance.pk:
         try:
             old_instance = Appointment.objects.get(pk=instance.pk)
             if old_instance.status != instance.status:
-
-                StatusHistory.objects.create(
-                    appointment=instance,
-                    old_status=old_instance.status,
-                    new_status=instance.status,
-                    reason=f'Status changed from {old_instance.status} to {instance.status}'
-                )
-                
-
-                if instance.user:
-                    Notification.objects.create(
-                        user=instance.user,
-                        appointment=instance,
-                        type='status_changed',
-                        title='Appointment Status Updated',
-                        message=f'Your appointment with {instance.doctor.name} has been {instance.status}.'
-                    )
-                
-
+                # Only send email - StatusHistory and Notification are created in views
                 try:
                     send_appointment_email(instance, 'status_changed')
                 except Exception as e:
@@ -78,10 +61,18 @@ def appointment_status_changed(sender, instance, **kwargs):
             pass
 
 
+def get_site_url():
+    """Get the site URL from settings"""
+    return getattr(settings, 'SITE_URL', 'http://localhost:8000')
+
+
 def send_appointment_email(appointment, email_type):
     """Send email notifications for appointments"""
     if not appointment.patient_email:
         return
+    
+    site_url = get_site_url()
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@doctorportal.com')
     
     subject = ""
     html_message = ""
@@ -109,10 +100,10 @@ def send_appointment_email(appointment, email_type):
                 <p>You will receive another email once the doctor reviews and approves your appointment request.</p>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="http://localhost:8000/patient/dashboard/" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">View Dashboard</a>
+                    <a href="{site_url}/patient/dashboard/" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">View Dashboard</a>
                 </div>
                 
-                <p>Best regards,<br>Enhanced Doctor Portal Team</p>
+                <p>Best regards,<br>Doctor Appointment Portal Team</p>
             </div>
         </body>
         </html>
@@ -151,10 +142,10 @@ def send_appointment_email(appointment, email_type):
                 </div>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="http://localhost:8000/patient/dashboard/" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">View Dashboard</a>
+                    <a href="{site_url}/patient/dashboard/" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">View Dashboard</a>
                 </div>
                 
-                <p>Best regards,<br>Enhanced Doctor Portal Team</p>
+                <p>Best regards,<br>Doctor Appointment Portal Team</p>
             </div>
         </body>
         </html>
@@ -168,7 +159,7 @@ def send_appointment_email(appointment, email_type):
             send_mail(
                 subject=subject,
                 message=plain_message,
-                from_email='noreply@doctorportal.com',
+                from_email=from_email,
                 recipient_list=[appointment.patient_email],
                 html_message=html_message,
                 fail_silently=False,

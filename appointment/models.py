@@ -1,9 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.conf import settings
 
 
 class Doctor(models.Model):
+    # Link to User account (proper relationship instead of name matching)
+    user = models.OneToOneField(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='doctor_profile'
+    )
     name = models.CharField(max_length=100)
     specialization = models.CharField(max_length=100)
     email = models.EmailField(blank=True)
